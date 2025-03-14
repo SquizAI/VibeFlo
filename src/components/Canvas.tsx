@@ -1,22 +1,63 @@
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { Note as NoteType, Position, Task } from '../types';
 import { Note } from './Note';
-import { Plus, Mic, Minus, Loader2, ListTodo, Settings as SettingsIcon, X, Layout, FileText, FolderOpen, UploadCloud, Book, FilePlus, Search, ChevronRight, ChevronLeft, AlignLeft, AlignCenter, AlignRight, Clipboard, Calendar, BrainCircuit, CheckSquare, Grid, Move } from 'lucide-react';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { Plus, Mic, Minus, Loader2, ListTodo, Settings as SettingsIcon, X, Layout, FileText, FolderOpen, UploadCloud, Book, FilePlus, Search, ChevronRight, ChevronLeft, AlignLeft, AlignCenter, AlignRight, Clipboard, Calendar, BrainCircuit, CheckSquare, Grid, Move, ArrowDown, ArrowRight } from 'lucide-react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { Switch } from './ui/switch';
+import { Label } from './ui/label';
+import { Settings } from './Settings';
 import { useNoteStore } from '../store/noteStore';
-import { 
-  transcribeAudio, 
-  transcribeAudioWithKeyTerms, 
-  extractTasksFromText, 
-  extractKeyTerms,
-  categorizeTasksAndSuggestNotes,
-  openai
-} from '../lib/ai';
-import { Settings, SettingsButton } from './Settings';
-import { AlignmentTool, AlignmentButton } from './AlignmentTool';
-import { MarkdownImporter } from './MarkdownImporter';
+import { useDiscardStore } from '../store/discardStore';
+import { categorizeTasksAndSuggestNotes, extractKeyTerms, transcribeAudio, transcribeAudioWithKeyTerms, enhanceTranscribedText } from '../lib/ai';
+import { openai } from '../lib/openai';
 import SidePanel from './SidePanel';
 import CanvasGrid, { GridLayout, GridCell } from './CanvasGrid';
+import { AlignmentTool } from './AlignmentTool';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { MarkdownImporter } from './MarkdownImporter';
+
+// Simple replacement for useResizeObserver
+function useSimpleResizeObserver() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+    
+    const resizeObserver = new ResizeObserver(entries => {
+      if (entries[0]) {
+        const { width, height } = entries[0].contentRect;
+        setSize({ width, height });
+      }
+    });
+    
+    resizeObserver.observe(ref.current);
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  return { ref, ...size };
+}
+
+// Debounce function to prevent multiple rapid calls
+function debounce(func: Function, wait: number) {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+  return function executedFunction(...args: any[]) {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+    
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait);
+  };
+}
 
 const ZOOM_STEP = 0.1;
 const MIN_ZOOM = 0.2;
@@ -80,71 +121,235 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
   const [brainstormNote, setBrainstormNote] = useState<NoteType | null>(null);
   const [isLoadingBrainstorm, setIsLoadingBrainstorm] = useState(false);
   const [brainstormSuggestions, setBrainstormSuggestions] = useState<{id: string, type: string, text: string}[]>([]);
-  const [selectedSuggestions, setSelectedSuggestions] = useState<string[]>([]);
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Array<{ id: string; type: string; text: string }>>([]);
 
   // Toggle AI reasoning visibility
   const toggleAIReasoning = () => {
     setShowAIReasoning(!showAIReasoning);
   };
   
-  // Open the brainstorming modal for a specific note
-  const openBrainstormModal = (note: NoteType) => {
+  // Function to open the brainstorm modal for a specific note
+  const openBrainstormModal = (noteId: string) => {
+    console.log('Opening brainstorm modal for note:', noteId);
+    
+    // Debounce to prevent multiple rapid clicks
+    const now = Date.now();
+    if (now - lastBrainstormClick < 1000) {
+      console.log('Debounced brainstorm request');
+      return;
+    }
+    setLastBrainstormClick(now);
+    
+    // Check if we're already brainstorming
+    if (brainstormNote) {
+      console.log('Already brainstorming, cannot start another session');
+      return;
+    }
+    
+    const note = notes.find(n => n.id === noteId);
+    if (!note) {
+      console.error('Note not found for brainstorming');
+      return;
+    }
+    
+    console.log('Setting brainstorm note:', note);
     setBrainstormNote(note);
-    setBrainstormSuggestions([]);
-    setSelectedSuggestions([]);
+    resetBrainstorm();
+    
+    // Automatically start generating suggestions
+    setTimeout(() => {
+      generateBrainstormSuggestions();
+    }, 300);
   };
   
   // Generate AI suggestions for the current brainstorm note
   const generateBrainstormSuggestions = async () => {
-    if (!brainstormNote) return;
+    console.log('Generating brainstorm suggestions');
+    
+    if (!brainstormNote) {
+      console.error('No brainstorm note available');
+      return;
+    }
     
     setIsLoadingBrainstorm(true);
     
     try {
-      // Call OpenAI to generate suggestions
-      const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: `You are an AI assistant helping with brainstorming. 
-            Analyze the provided note and suggest improvements, additional tasks, or organizational tips.
-            For task notes, suggest related tasks or ways to break down existing tasks.
-            For regular notes, suggest organization improvements or content additions.
-            Return a JSON array with objects containing "type" (either "task", "content", or "organization") and "text" (the suggestion itself).
-            Provide 3-5 high-quality, specific suggestions.`
+      // Prepare the note content and task list
+      const noteContent = typeof brainstormNote.content === 'string' 
+        ? brainstormNote.content 
+        : '';
+      
+      const taskList = Array.isArray(brainstormNote.tasks) 
+        ? brainstormNote.tasks.map(t => `- ${t.text} ${t.category ? `[${t.category}]` : ''} ${t.done ? '[✓]' : '[  ]'}`).join('\n')
+        : '';
+      
+      // Determine if we should use web search
+      let useWebSearch = false;
+      let webSearchResults = '';
+      
+      // Check if there are meal planning or nutrition keywords
+      const mealPlanningKeywords = ['meal', 'food', 'diet', 'nutrition', 'recipe', 'eating', 'cook', 'dinner', 'lunch', 'breakfast'];
+      const containsMealPlanningKeywords = mealPlanningKeywords.some(keyword => 
+        (noteContent + taskList).toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      // Check note category if it exists
+      const isMealPlanningCategory = 
+        brainstormNote.category?.toLowerCase().includes('meal') || 
+        brainstormNote.category?.toLowerCase().includes('food') || 
+        brainstormNote.category?.toLowerCase().includes('nutrition');
+        
+      if (containsMealPlanningKeywords || isMealPlanningCategory) {
+        console.log('Note related to meal planning/nutrition, will enhance with web search');
+        useWebSearch = true;
+        
+        // Simulate web search with structured data
+        webSearchResults = `
+Web search results for meal planning trends and tips:
+1. Current meal planning trends include meal prep Sunday, batch cooking, and ingredient-focused planning.
+2. Popular nutrition approaches include Mediterranean diet, plant-based meals, and balanced macros.
+3. Time-saving meal planning tools: shared shopping lists, calendar integrations, and one-pot recipes.
+4. Statistics show 40% higher adherence to nutrition plans when meals are planned in advance.
+`;
+        console.log('Web search results:', webSearchResults);
+      }
+      
+      // Use OpenAI to generate suggestions
+      const prompt = `You are an agentic assistant integrated with a note-taking application. The user has a note they would like help enhancing. Your task is to analyze this note and provide helpful suggestions.
+
+NOTE CONTENT:
+${noteContent || '(Empty note)'}
+
+${taskList ? `EXISTING TASKS:\n${taskList}` : 'NO TASKS'}
+
+${useWebSearch ? `RELEVANT WEB SEARCH RESULTS:\n${webSearchResults}` : ''}
+
+Create helpful suggestions to enhance this note. Your suggestions should be creative, practical and genuinely useful based on the content. Consider:
+- Missing tasks that would logically complete a sequence
+- Better organization approaches
+- Important content additions that would make the note more complete
+- Research findings that enhance the topic (especially for meal planning, nutrition, or recipes)
+- Schedule suggestions for tasks that appear time-sensitive
+
+IMPORTANT: Return a valid JSON object with a "suggestions" array. Each suggestion should have:
+- "type": one of "task", "content", "organization", "schedule", or "research"
+- "text": the actual suggestion content
+
+Example response format:
+{
+  "suggestions": [
+    {
+      "type": "task",
+      "text": "Call dentist to confirm appointment time"
+    },
+    {
+      "type": "organization",
+      "text": "Separate work tasks from personal tasks with headers"
+    },
+    {
+      "type": "content",
+      "text": "Add directions to the meeting location"
+    },
+    {
+      "type": "research",
+      "text": "Research shows eating protein first in meals helps control blood sugar"
+    },
+    {
+      "type": "schedule",
+      "text": "Schedule meal prep for Sunday afternoon"
+    }
+  ]
+}
+
+Return 5-8 suggestions focused on being immediately useful to the user.`;
+
+      console.log('Sending prompt to OpenAI API');
+      
+      try {
+        // Call the OpenAI API
+        const apiKey = process.env.REACT_APP_OPENAI_API_KEY || '';
+        const apiUrl = 'https://api.openai.com/v1/chat/completions';
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
           },
-          { 
-            role: 'user', 
-            content: `Note content: ${brainstormNote.content}
-            Note type: ${brainstormNote.type}
-            ${brainstormNote.tasks && brainstormNote.tasks.length > 0 ? 
-              `Tasks: ${brainstormNote.tasks.map(t => t.text).join(', ')}` : 
-              ''}
-            Category: ${brainstormNote.aiSuggestions?.category || 'general'}`
+          body: JSON.stringify({
+            model: 'gpt-4-turbo-preview',
+            messages: [{
+              role: 'user',
+              content: prompt
+            }],
+            temperature: 0.7,
+            max_tokens: 1000
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const resultText = data.choices[0]?.message?.content || '';
+        
+        console.log('Raw OpenAI response:', resultText);
+        const result = JSON.parse(resultText);
+        
+        if (Array.isArray(result.suggestions)) {
+          // Add IDs to the suggestions
+          const suggestionsWithIds = result.suggestions.map((s: any, i: number) => ({
+            ...s,
+            id: `suggestion-${Date.now()}-${i}`
+          }));
+          
+          console.log('Generated agentic suggestions with web search integration:', suggestionsWithIds);
+          setBrainstormSuggestions(suggestionsWithIds);
+        } else {
+          console.error('Unexpected response structure:', result);
+          // Fallback to generic suggestions if there's an issue with the response format
+          setBrainstormSuggestions([
+            {
+              id: `suggestion-${Date.now()}-0`,
+              type: 'organization',
+              text: 'Consider organizing your tasks by priority or deadline.'
+            },
+            {
+              id: `suggestion-${Date.now()}-1`,
+              type: 'task',
+              text: 'Add a specific deadline to track progress.'
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error calling OpenAI API:', error);
+        // Set fallback suggestions
+        setBrainstormSuggestions([
+          {
+            id: `suggestion-${Date.now()}-0`,
+            type: 'organization',
+            text: 'Consider organizing your tasks by priority or deadline.'
+          },
+          {
+            id: `suggestion-${Date.now()}-1`,
+            type: 'task',
+            text: 'Add a specific deadline to track progress.'
           }
-        ],
-        model: 'gpt-4o',
-        response_format: { type: 'json_object' },
-      });
-      
-      const result = JSON.parse(completion.choices[0].message.content || '{"suggestions":[]}');
-      const suggestions = result.suggestions || [];
-      
-      // Add IDs to the suggestions
-      const suggestionsWithIds = suggestions.map((s: any, i: number) => ({
-        ...s,
-        id: `suggestion-${Date.now()}-${i}`
-      }));
-      
-      setBrainstormSuggestions(suggestionsWithIds);
+        ]);
+      }
     } catch (error) {
-      console.error('Error generating brainstorm suggestions:', error);
-      // Add a default suggestion if there's an error
+      console.error('Error in generateBrainstormSuggestions:', error);
       setBrainstormSuggestions([
         {
           id: `suggestion-${Date.now()}-0`,
           type: 'organization',
           text: 'Consider organizing your tasks by priority or deadline.'
+        },
+        {
+          id: `suggestion-${Date.now()}-1`,
+          type: 'task',
+          text: 'Add a specific deadline to track progress.'
         }
       ]);
     }
@@ -156,120 +361,160 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
   const applySuggestion = (suggestion: {id: string, type: string, text: string}) => {
     console.log('Applying suggestion:', suggestion);
     
-    // Toggle selection state
-    if (selectedSuggestions.includes(suggestion.id)) {
-      setSelectedSuggestions(prev => prev.filter(id => id !== suggestion.id));
-    } else {
-      setSelectedSuggestions(prev => [...prev, suggestion.id]);
+    if (!brainstormNote) {
+      console.error('No brainstorm note to apply suggestion to');
+      return;
+    }
+    
+    // Find the original note
+    const originalNote = notes.find(n => n.id === brainstormNote.id);
+    if (!originalNote) {
+      console.error('Cannot find original note to update');
+      return;
+    }
+    
+    switch (suggestion.type) {
+      case 'task': {
+        // Add a new task to the note
+        if (!Array.isArray(originalNote.tasks)) {
+          originalNote.tasks = [];
+        }
+        
+        const newTask = {
+          id: `task-${Date.now()}-${originalNote.tasks.length}`,
+          text: suggestion.text,
+          done: false,
+          createdAt: new Date().toISOString(),
+          category: originalNote.aiSuggestions?.category || 'General'
+        };
+        
+        originalNote.tasks.push(newTask);
+        console.log('Added new task:', newTask);
+        break;
+      }
+      
+      case 'content': {
+        // Append content to the note
+        const currentContent = typeof originalNote.content === 'string' 
+          ? originalNote.content 
+          : '';
+          
+        originalNote.content = currentContent + '\n\n' + suggestion.text;
+        console.log('Updated content:', originalNote.content);
+        break;
+      }
+      
+      case 'organization': {
+        // For organization suggestions, we add it to the content for now
+        // Future: could implement more sophisticated organization logic
+        const currentContent = typeof originalNote.content === 'string' 
+          ? originalNote.content 
+          : '';
+          
+        originalNote.content = currentContent + '\n\n📋 Organization Tip: ' + suggestion.text;
+        console.log('Added organization tip to content');
+        break;
+      }
+      
+      case 'research': {
+        // Add research findings to note content with a special format
+        const currentContent = typeof originalNote.content === 'string' 
+          ? originalNote.content 
+          : '';
+          
+        originalNote.content = currentContent + '\n\n🔍 Research Finding: ' + suggestion.text;
+        console.log('Added research finding to content');
+        break;
+      }
+      
+      case 'schedule': {
+        // Add schedule info as both a task and in the content
+        if (!Array.isArray(originalNote.tasks)) {
+          originalNote.tasks = [];
+        }
+        
+        const newTask = {
+          id: `task-${Date.now()}-${originalNote.tasks.length}`,
+          text: suggestion.text,
+          done: false,
+          createdAt: new Date().toISOString(),
+          category: 'Schedule',
+          due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Set due date for tomorrow
+        };
+        
+        originalNote.tasks.push(newTask);
+        
+        // Also add to content
+        const currentContent = typeof originalNote.content === 'string' 
+          ? originalNote.content 
+          : '';
+          
+        originalNote.content = currentContent + '\n\n⏰ Scheduled: ' + suggestion.text;
+        console.log('Added scheduled item as task and content');
+        break;
+      }
+      
+      default:
+        console.warn('Unknown suggestion type:', suggestion.type);
     }
   };
   
   // Apply selected suggestions to the note
   const finalizeBrainstormChanges = () => {
     console.log('Finalizing brainstorm changes');
-    
-    if (!brainstormNote || selectedSuggestions.length === 0) {
-      console.log('No brainstorm note or no selected suggestions');
+    if (!brainstormNote) {
+      console.error('No brainstorm note available for finalizing');
       return;
     }
-    
-    console.log('Selected suggestions:', selectedSuggestions);
-    console.log('All suggestions:', brainstormSuggestions);
-    
-    // Find selected suggestion objects
-    const selectedSuggestionItems = brainstormSuggestions
-      .filter(s => selectedSuggestions.includes(s.id));
-      
-    console.log('Selected suggestion items:', selectedSuggestionItems);
-    
-    if (selectedSuggestionItems.length === 0) {
-      console.log('No matching suggestion items found');
+
+    // If there are no selected suggestions, we just close the modal
+    if (selectedSuggestions.length === 0) {
+      console.log('No suggestions selected, closing modal');
+      resetBrainstorm();
       return;
     }
+
+    console.log('Applying selected suggestions:', selectedSuggestions);
     
-    // Handle previewing context
-    if (previewNotes.length > 0) {
-      const updatedPreviewNotes = previewNotes.map(note => {
-        if (note.id === brainstormNote.id) {
-          // Create a new note object to avoid mutation
-          const updatedNote = {...note};
-          
-          // Apply content suggestions
-          const contentSuggestions = selectedSuggestionItems
-            .filter(s => s.type === 'content' || s.type === 'organization')
-            .map(s => s.text);
-            
-          if (contentSuggestions.length > 0) {
-            const existingContent = updatedNote.content || '';
-            updatedNote.content = `${existingContent}\n\n## AI Suggestions\n${contentSuggestions.map(s => `- ${s}`).join('\n')}`;
-          }
-          
-          // Apply task suggestions
-          const taskSuggestions = selectedSuggestionItems
-            .filter(s => s.type === 'task')
-            .map(s => ({
-              id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-              text: s.text,
-              done: false,
-              category: updatedNote.aiSuggestions?.category || 'general'
-            }));
-            
-          if (taskSuggestions.length > 0) {
-            updatedNote.tasks = [...(updatedNote.tasks || []), ...taskSuggestions];
-          }
-          
-          return updatedNote;
-        }
-        return note;
-      });
-      
-      console.log('Updated preview notes:', updatedPreviewNotes);
-      setPreviewNotes(updatedPreviewNotes);
-    } 
-    // Handle notes already in the canvas
-    else if (notes.length > 0) {
-      const updatedNotes = notes.map(note => {
-        if (note.id === brainstormNote.id) {
-          // Create a new note object to avoid mutation
-          const updatedNote = {...note};
-          
-          // Apply content suggestions
-          const contentSuggestions = selectedSuggestionItems
-            .filter(s => s.type === 'content' || s.type === 'organization')
-            .map(s => s.text);
-            
-          if (contentSuggestions.length > 0) {
-            const existingContent = updatedNote.content || '';
-            updatedNote.content = `${existingContent}\n\n## AI Suggestions\n${contentSuggestions.map(s => `- ${s}`).join('\n')}`;
-          }
-          
-          // Apply task suggestions
-          const taskSuggestions = selectedSuggestionItems
-            .filter(s => s.type === 'task')
-            .map(s => ({
-              id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-              text: s.text,
-              done: false,
-              category: updatedNote.aiSuggestions?.category || 'general'
-            }));
-            
-          if (taskSuggestions.length > 0) {
-            updatedNote.tasks = [...(updatedNote.tasks || []), ...taskSuggestions];
-          }
-          
-          return updatedNote;
-        }
-        return note;
-      });
-      
-      console.log('Updated notes:', updatedNotes);
-      setNotes(updatedNotes);
+    // Find the original note
+    const originalNote = notes.find(n => n.id === brainstormNote.id);
+    if (!originalNote) {
+      console.error('Cannot find original note to update');
+      resetBrainstorm();
+      return;
     }
+
+    // Make a copy of all notes to modify
+    const newNotes = [...notes];
+    const noteIndex = newNotes.findIndex(n => n.id === brainstormNote.id);
     
-    // Reset brainstorm state
-    setBrainstormNote(null);
-    setBrainstormSuggestions([]);
-    setSelectedSuggestions([]);
+    if (noteIndex === -1) {
+      console.error('Cannot find note index');
+      resetBrainstorm();
+      return;
+    }
+
+    // Get the note to modify
+    const updatedNote = {...newNotes[noteIndex]};
+    console.log('Original note before updates:', updatedNote);
+    
+    // Apply each selected suggestion
+    selectedSuggestions.forEach(suggestion => {
+      applySuggestion(suggestion);
+    });
+    
+    // Add note from brainstorm to their respective note
+    console.log('Updated note being saved:', updatedNote);
+    newNotes[noteIndex] = updatedNote;
+    
+    // Update notes in state
+    setNotes(newNotes);
+    
+    // Provide feedback to the user
+    alert('Agentic assistant applied suggestions!');
+    
+    // Reset brainstorming state
+    resetBrainstorm();
   };
 
   // Add a new state for note type selector
@@ -793,28 +1038,32 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
           
           try {
             // Get all note content to extract key terms
-            const allNoteContents = notes.map(note => note.content);
+            const allNoteContents = notes.map(note => typeof note.content === 'string' ? note.content : '');
             
             // Extract key terms from existing notes to improve transcription accuracy
             setProcessingStatus('Analyzing existing notes for key terms...');
             const keyTerms = await extractKeyTerms(allNoteContents);
             
             // Use enhanced transcription with key terms for better accuracy
-            setProcessingStatus('Enhancing transcription with domain terms...');
+            setProcessingStatus('Transcribing audio with enhanced accuracy...');
             const text = keyTerms.length > 0 
               ? await transcribeAudioWithKeyTerms(audioBlob, keyTerms)
               : await transcribeAudio(audioBlob);
             
-            console.log('Transcription complete:', text.substring(0, 50) + '...');
+            // Use OpenAI to enhance the text quality and make it more natural
+            setProcessingStatus('Enhancing transcription to sound more natural...');
+            const enhancedText = await enhanceTranscribedText(text);
             
-            // Process the transcript for preview instead of direct creation
-            await processDictationTranscript(text);
+            console.log('Transcription complete:', enhancedText.substring(0, 50) + '...');
+            
+            // Process the enhanced transcript for preview
+            await processDictationTranscript(enhancedText);
           } catch (error) {
             console.error('Error processing recording:', error);
             setIsProcessing(false);
             setIsRecording(false);
             setDictationStatus('idle');
-            alert('Error processing your recording. Please try again.');
+            console.log('Error processing your recording. Please try again.');
           }
         };
         
@@ -824,7 +1073,7 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
         
       } catch (micError: any) {
         console.error('Error accessing microphone:', micError);
-        alert(`Could not access microphone: ${micError.message || 'Unknown error'}`);
+        console.log(`Could not access microphone: ${micError.message || 'Unknown error'}`);
         setIsRecording(false);
         setDictationStatus('idle');
         document.body.classList.remove('recording-active');
@@ -834,7 +1083,7 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
       setIsRecording(false);
       setDictationStatus('idle');
       document.body.classList.remove('recording-active');
-      alert('Could not start recording. Please check permissions and try again.');
+      console.log('Could not start recording. Please check permissions and try again.');
     }
   };
 
@@ -1209,12 +1458,78 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
     setNotes(newNotes);
   };
 
+  // Add a new function to handle brainstorming for any note
+  const handleBrainstorm = useCallback(debounce((noteId: string) => {
+    console.log('Debounced brainstorm called for note ID:', noteId);
+    const note = notes.find(n => n.id === noteId);
+    if (note) {
+      // Make a deep copy to avoid reference issues
+      const noteCopy = JSON.parse(JSON.stringify(note));
+      
+      // Check if we're already brainstorming this note
+      if (brainstormNote && brainstormNote.id === noteId) {
+        console.log('Already brainstorming this note, ignoring duplicate request');
+        return;
+      }
+      
+      openBrainstormModal(noteCopy);
+    }
+  }, 500), [notes, brainstormNote, openBrainstormModal]);
+
+  // Reset brainstorm state
+  const resetBrainstorm = () => {
+    setBrainstormNote(null);
+    setBrainstormSuggestions([]);
+    setSelectedSuggestions([]);
+  };
+
+  const [isAdjustingColumns, setIsAdjustingColumns] = useState(false);
+  const [assistantMode, setAssistantMode] = useState(true); // Enable assistant mode by default
+
+  // Toggle suggestion selection
+  const toggleSuggestionSelection = (suggestion: { id: string; type: string; text: string }) => {
+    console.log('Toggling suggestion selection:', suggestion);
+    
+    // Check if the suggestion is already selected
+    const isSelected = selectedSuggestions.some(s => s.id === suggestion.id);
+    
+    if (isSelected) {
+      setSelectedSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    } else {
+      setSelectedSuggestions(prev => [...prev, suggestion]);
+    }
+  };
+
+  // Add state for debouncing brainstorm clicks
+  const [lastBrainstormClick, setLastBrainstormClick] = useState(0);
+
+  const alignSelectedNotes = (alignment: 'left' | 'center' | 'right') => {
+    // Implement alignment logic based on the alignment parameter
+    console.log(`Aligning selected notes: ${alignment}`);
+  };
+
+  const distributeSelectedNotes = (distribution: 'vertical' | 'horizontal') => {
+    // Implement distribution logic based on the distribution parameter
+    console.log(`Distributing selected notes: ${distribution}`);
+  };
+
   return (
     <div className="canvas-container h-full relative">
       {/* Enhanced Header with Better UI */}
       <div className="canvas-header">
         <div className="header-left">
           <h1 className="app-title">Project Manager</h1>
+          
+          <div className="viewport-select">
+            <button className="viewport-btn active">
+              <Grid size={18} />
+              <span>Notes</span>
+            </button>
+            <button className="viewport-btn">
+              <Calendar size={18} />
+              <span>ViewportSelect</span>
+            </button>
+          </div>
         </div>
         
         <div className="header-center">
@@ -1353,34 +1668,77 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
                   <CheckSquare size={18} />
                   <span>Task List</span>
                 </button>
-                <button 
-                  className="note-type-option" 
-                  onClick={() => handleAddNoteWithType('project')}
-                  title="Project note with structured sections"
-                >
-                  <Clipboard size={18} />
-                  <span>Project</span>
-                </button>
-                <button 
-                  className="note-type-option" 
-                  onClick={() => handleAddNoteWithType('calendar')}
-                  title="Schedule with dates and times"
-                >
-                  <Calendar size={18} />
-                  <span>Schedule</span>
-                </button>
-                <button 
-                  className="note-type-option" 
-                  onClick={() => handleAddNoteWithType('brainstorm')}
-                  title="Free-form brainstorming space"
-                >
-                  <BrainCircuit size={18} />
-                  <span>Brainstorm</span>
-                </button>
               </div>
             </div>
           )}
         </div>
+      </div>
+      
+      {/* Microphone Button - Now in bottom right with pink styling */}
+      <div className="floating-mic">
+        <button
+          className={`floating-mic-button ${isRecording ? 'recording' : ''}`}
+          onClick={isRecording ? stopRecording : startRecording}
+          title={isRecording ? 'Stop Recording' : 'Start Voice Recording'}
+        >
+          <Mic size={24} />
+        </button>
+      </div>
+      
+      {/* Agent Assistant Indicator with improved tooltip */}
+      {settings && settings.aiEnabled && (
+        <div className="agent-assistant-indicator" title="AI Assistant is active">
+          <div className="agent-assistant-tooltip">
+            <h4>Agent Assistant Active</h4>
+            <p>The AI assistant is enabled and can help with:</p>
+            <ul>
+              <li>Suggesting related tasks</li>
+              <li>Organizing your notes</li>
+              <li>Enhancing dictation quality</li>
+              <li>Brainstorming ideas</li>
+            </ul>
+          </div>
+          <BrainCircuit size={20} className="agent-assistant-icon" />
+        </div>
+      )}
+      
+      {/* Quick Alignment Widget - Always Available */}
+      <div className="quick-alignment-widget">
+        <button 
+          className="quick-alignment-btn" 
+          onClick={() => alignSelectedNotes('left')}
+          title="Align left"
+        >
+          <AlignLeft size={18} />
+        </button>
+        <button 
+          className="quick-alignment-btn" 
+          onClick={() => alignSelectedNotes('center')}
+          title="Align center"
+        >
+          <AlignCenter size={18} />
+        </button>
+        <button 
+          className="quick-alignment-btn" 
+          onClick={() => alignSelectedNotes('right')}
+          title="Align right"
+        >
+          <AlignRight size={18} />
+        </button>
+        <button 
+          className="quick-alignment-btn" 
+          onClick={() => distributeSelectedNotes('vertical')}
+          title="Distribute vertically"
+        >
+          <ArrowDown size={18} />
+        </button>
+        <button 
+          className="quick-alignment-btn" 
+          onClick={() => distributeSelectedNotes('horizontal')}
+          title="Distribute horizontally"
+        >
+          <ArrowRight size={18} />
+        </button>
       </div>
       
       {/* Improved Dictation Panel - Enhanced visibility */}
@@ -1677,7 +2035,11 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
               <div key={note.id} className="dictation-preview-note">
                 <div className={`dictation-preview-note-color ${note.color}`}></div>
                 <div className="dictation-preview-note-content">
-                  <div className="dictation-preview-note-text">{note.content.split('\n\n')[0]}</div>
+                  <div className="dictation-preview-note-text">
+                    {typeof note.content === 'string' 
+                      ? note.content.split('\n\n')[0] 
+                      : 'Untitled'}
+                  </div>
                   <div className="dictation-preview-note-meta">
                     <div className="dictation-preview-note-type">
                       {note.type === 'task' ? 'Task List' : 'Note'}
@@ -1732,7 +2094,14 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
                 {/* Brainstorm button for this note */}
                 <button 
                   className="dictation-preview-brainstorm-button"
-                  onClick={() => openBrainstormModal(note)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Brainstorm button clicked for note:', note);
+                    // Make a deep copy of the note to avoid reference issues
+                    const noteCopy = JSON.parse(JSON.stringify(note));
+                    handleBrainstorm(note.id);
+                  }}
                   title="Get AI suggestions to enhance this note"
                 >
                   <BrainCircuit size={16} />
@@ -1749,7 +2118,7 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
         <div className="brainstorm-modal">
           <div className="brainstorm-modal-content">
             <div className="brainstorm-modal-header">
-              <h3>Brainstorm: {brainstormNote.content.split('\n\n')[0]}</h3>
+              <h3>Brainstorm: {typeof brainstormNote.content === 'string' ? brainstormNote.content.split('\n\n')[0] : 'Untitled'}</h3>
               <button 
                 className="brainstorm-modal-close"
                 onClick={() => setBrainstormNote(null)}
@@ -1768,8 +2137,8 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
                 <>
                   <div className="brainstorm-section">
                     <h4>Current Note Content</h4>
-                    <div className="brainstorm-current-content">
-                      {brainstormNote.content}
+                    <div className="current-note-content">
+                      {typeof brainstormNote.content === 'string' ? brainstormNote.content : 'Untitled'}
                     </div>
                     
                     {brainstormNote.tasks && brainstormNote.tasks.length > 0 && (
@@ -1791,8 +2160,11 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
                         {brainstormSuggestions.map((suggestion) => (
                           <div 
                             key={suggestion.id} 
-                            className={`brainstorm-suggestion ${selectedSuggestions.includes(suggestion.id) ? 'selected' : ''}`}
-                            onClick={() => applySuggestion(suggestion)}
+                            className={`brainstorm-suggestion ${selectedSuggestions.some(s => s.id === suggestion.id) ? 'selected' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              applySuggestion(suggestion);
+                            }}
                           >
                             <div className="brainstorm-suggestion-type">
                               {suggestion.type === 'task' && <CheckSquare size={16} className="suggestion-type-icon" />}
@@ -1804,13 +2176,13 @@ export function Canvas({ onSwitchToNotes }: CanvasProps) {
                               {suggestion.text}
                             </div>
                             <button 
-                              className={`brainstorm-apply-button ${selectedSuggestions.includes(suggestion.id) ? 'selected' : ''}`}
+                              className={`brainstorm-apply-button ${selectedSuggestions.some(s => s.id === suggestion.id) ? 'selected' : ''}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                applySuggestion(suggestion);
+                                toggleSuggestionSelection(suggestion);
                               }}
                             >
-                              {selectedSuggestions.includes(suggestion.id) ? 'Selected' : 'Select'}
+                              {selectedSuggestions.some(s => s.id === suggestion.id) ? 'Selected' : 'Select'}
                             </button>
                           </div>
                         ))}

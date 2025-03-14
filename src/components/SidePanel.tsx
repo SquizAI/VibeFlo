@@ -178,7 +178,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
       const lowerSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(note => {
         // Search in title
-        if (note.content.toLowerCase().includes(lowerSearchTerm)) return true;
+        if (note.content && typeof note.content === 'string' && note.content.toLowerCase().includes(lowerSearchTerm)) return true;
         
         // Search in tasks
         if (note.tasks) {
@@ -195,7 +195,11 @@ const SidePanel: React.FC<SidePanelProps> = ({
     // Apply sorting
     switch(sortBy) {
       case 'title':
-        filtered.sort((a, b) => a.content.localeCompare(b.content));
+        filtered.sort((a, b) => {
+          const contentA = typeof a.content === 'string' ? a.content : '';
+          const contentB = typeof b.content === 'string' ? b.content : '';
+          return contentA.localeCompare(contentB);
+        });
         break;
       case 'category':
         filtered.sort((a, b) => {
@@ -455,7 +459,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
   return (
     <div className="side-panel">
       <div className="side-panel-header">
-        <h3>Project Manager</h3>
+        <h3>VibeFlo</h3>
         
         <Tabs 
           defaultValue="notes" 
@@ -599,8 +603,11 @@ const NoteListItem: React.FC<NoteListItemProps> = ({
   isSelected,
   toggleSelection
 }) => {
-  // Truncate long titles
-  const truncateTitle = (title: string, maxLength = 30) => {
+  // Truncate long titles and handle non-string content
+  const truncateTitle = (title: any, maxLength = 30) => {
+    if (typeof title !== 'string') {
+      return 'Untitled'; // Default value when content is not a string
+    }
     return title.length > maxLength
       ? title.substring(0, maxLength) + '...'
       : title;

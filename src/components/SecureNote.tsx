@@ -30,14 +30,15 @@ export const SecureNote: React.FC<SecureNoteProps> = ({ note, onContentChange })
   const [error, setError] = useState('');
   const [isLocked, setIsLocked] = useState(true);
   const [isPasswordSet, setIsPasswordSet] = useState(false);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(true);
   
   // Check if this note already has encrypted content
   useEffect(() => {
-    if (note.content && note.content.startsWith('encrypted:')) {
+    if (note.content && typeof note.content === 'string' && note.content.startsWith('encrypted:')) {
       setIsPasswordSet(true);
     } else {
       setIsPasswordSet(false);
-      setDecryptedContent(note.content || '');
+      setDecryptedContent(typeof note.content === 'string' ? note.content : '');
     }
   }, [note.content]);
 
@@ -70,7 +71,7 @@ export const SecureNote: React.FC<SecureNoteProps> = ({ note, onContentChange })
       setError('');
     } else {
       // Unlock with existing password
-      if (note.content && note.content.startsWith('encrypted:')) {
+      if (note.content && typeof note.content === 'string' && note.content.startsWith('encrypted:')) {
         const encryptedContent = note.content.substring(10); // Remove 'encrypted:' prefix
         const decrypted = decryptContent(encryptedContent, password);
         
@@ -86,23 +87,20 @@ export const SecureNote: React.FC<SecureNoteProps> = ({ note, onContentChange })
   };
 
   const handleLock = () => {
-    setIsLocked(true);
-    setIsVisible(false);
-    setPassword('');
-    setConfirmPassword('');
+    if (password) {
+      const encryptedText = encryptContent(decryptedContent, password);
+      onContentChange(note.id, `encrypted:${encryptedText}`, true);
+      setIsLocked(true);
+      setShowPasswordPrompt(false);
+    }
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    setDecryptedContent(newContent);
+    setDecryptedContent(e.target.value);
     
-    // If we're unlocked and have a password, encrypt the content
-    if (!isLocked && isPasswordSet) {
-      const encrypted = encryptContent(newContent, password);
-      onContentChange(note.id, `encrypted:${encrypted}`, true);
-    } else if (!isPasswordSet) {
-      // Not encrypted yet, just update normally
-      onContentChange(note.id, newContent);
+    // We only update the parent when the note is finally locked
+    if (!isLocked) {
+      onContentChange(note.id, e.target.value, false);
     }
   };
 
