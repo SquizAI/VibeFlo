@@ -1,0 +1,19 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[dev]
+  command = "npm run dev"
+  port = 5173
+  targetPort = 5173
+
+# Handle SPA redirects
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variable settings can be added here if needed
+[build.environment]
+  # Add your non-sensitive environment variables here
+  # For example: NODE_VERSION = "18" 
