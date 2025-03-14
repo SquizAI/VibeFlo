@@ -200,12 +200,14 @@ export const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
                 ></div>
                 <div className="search-result-content">
                   <div className="search-result-title">
-                    {note.content ? note.content.split('\n')[0] : 'Untitled'}
+                    {note.content && typeof note.content === 'string' 
+                      ? note.content.split('\n')[0] 
+                      : 'Untitled'}
                   </div>
                   <div className="search-result-excerpt">
-                    {note.content ? 
-                      highlightSearchTerm(note.content.substring(0, 100), searchTerm) : 
-                      'No content'
+                    {note.content && typeof note.content === 'string' 
+                      ? highlightSearchTerm(note.content.substring(0, 100), searchTerm) 
+                      : 'No content'
                     }
                   </div>
                   

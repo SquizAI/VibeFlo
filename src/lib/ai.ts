@@ -247,3 +247,119 @@ export async function transcribeAudioWithKeyTerms(audioBlob: Blob, keyTerms: str
     throw new Error('Failed to transcribe audio with key terms');
   }
 }
+
+/**
+ * Suggest tasks based on existing tasks and their categories
+ * @param existingTasks Array of existing tasks with text and category
+ * @param categories Array of categories to generate suggestions for
+ * @returns Promise with suggested tasks organized by category
+ */
+export async function suggestTasks(
+  existingTasks: Array<{ text: string; category: string }>,
+  categories: string[]
+): Promise<{ [category: string]: Array<{ text: string; done: boolean }> }> {
+  try {
+    // Prepare the list of existing tasks by category
+    const tasksByCategory: { [key: string]: string[] } = {};
+    
+    existingTasks.forEach(task => {
+      if (!tasksByCategory[task.category]) {
+        tasksByCategory[task.category] = [];
+      }
+      tasksByCategory[task.category].push(task.text);
+    });
+    
+    // Create prompt content with existing tasks
+    let promptContent = "Based on the following existing tasks, suggest 2-3 new related tasks for each category:\n\n";
+    
+    categories.forEach(category => {
+      promptContent += `Category: ${category}\n`;
+      const categoryTasks = tasksByCategory[category] || [];
+      if (categoryTasks.length > 0) {
+        promptContent += "Existing tasks:\n";
+        categoryTasks.forEach(task => promptContent += `- ${task}\n`);
+      } else {
+        promptContent += "No existing tasks yet.\n";
+      }
+      promptContent += "\n";
+    });
+    
+    // Make OpenAI API call to generate suggestions
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a task suggestion assistant. Generate practical, specific task suggestions based on existing tasks. Tasks should be actionable, concise, and directly relevant to the category. Your response should be a JSON object with categories as keys and arrays of task objects as values. Each task object should have "text" and "done" properties.',
+        },
+        { role: 'user', content: promptContent },
+      ],
+      model: 'gpt-4o',
+      response_format: { type: 'json_object' },
+      temperature: 0.7, // Slightly higher temperature for creative suggestions
+    });
+
+    const suggestedTasks = JSON.parse(completion.choices[0].message.content!);
+    
+    // Ensure proper format for all categories
+    categories.forEach(category => {
+      if (!suggestedTasks[category]) {
+        suggestedTasks[category] = [];
+      }
+      
+      // Ensure each task has the required properties
+      suggestedTasks[category] = suggestedTasks[category].map((task: any) => ({
+        text: typeof task === 'string' ? task : task.text || 'Undefined task',
+        done: false
+      }));
+    });
+    
+    return suggestedTasks;
+  } catch (error) {
+    console.error('Error in suggestTasks:', error);
+    
+    // Return empty suggestions on error
+    const emptySuggestions: { [category: string]: Array<{ text: string; done: boolean }> } = {};
+    categories.forEach(category => {
+      emptySuggestions[category] = [];
+    });
+    
+    return emptySuggestions;
+  }
+}
+
+/**
+ * Enhance transcribed text to make it more natural using GPT-4o
+ */
+export async function enhanceTranscribedText(text: string): Promise<string> {
+  try {
+    if (!text || text.trim().length === 0) {
+      return text;
+    }
+    
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: `You are a dictation enhancement assistant. Your job is to:
+1. Fix grammar, punctuation, and capitalization in the transcribed text
+2. Make the text flow naturally while maintaining all original meaning
+3. Properly format lists, paragraphs, and sections
+4. Keep all key information intact
+5. DO NOT add new concepts or remove important details
+
+The output should be the enhanced version of the transcribed text only, with no explanations or comments.`
+        },
+        { role: 'user', content: text }
+      ],
+      model: 'gpt-4o',
+      temperature: 0.3, // Low temperature for more consistent results
+      max_tokens: 1000
+    });
+
+    return completion.choices[0].message.content || text;
+  } catch (error) {
+    console.error('Error enhancing transcribed text:', error);
+    // Return original text if enhancement fails
+    return text;
+  }
+}

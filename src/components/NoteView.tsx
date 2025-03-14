@@ -54,7 +54,11 @@ export const NoteView: React.FC<NoteViewProps> = ({ onSwitchToCanvas }) => {
           filtered = notes.filter(note => note.labels?.some(label => label.name === 'Favorite'));
           break;
         case 'secure':
-          filtered = notes.filter(note => note.content?.startsWith('encrypted:'));
+          filtered = notes.filter(note => 
+            note.content && 
+            typeof note.content === 'string' && 
+            note.content.startsWith('encrypted:')
+          );
           break;
         case 'tag':
           filtered = notes.filter(note => 
@@ -277,7 +281,7 @@ export const NoteView: React.FC<NoteViewProps> = ({ onSwitchToCanvas }) => {
                 
                 <div className="note-details">
                   <div className="note-title">
-                    {note.content ? 
+                    {note.content && typeof note.content === 'string' ? 
                       note.content.split('\n')[0].substring(0, 40) || 'Untitled' : 
                       'Untitled'
                     }
@@ -298,10 +302,10 @@ export const NoteView: React.FC<NoteViewProps> = ({ onSwitchToCanvas }) => {
                       </span>
                     )}
                     
-                    {note.content?.startsWith('encrypted:') && (
-                      <span className="note-secure">
-                        <Lock size={12} />
-                      </span>
+                    {note.content && 
+                     typeof note.content === 'string' && 
+                     note.content.startsWith('encrypted:') && (
+                      <span className="note-lock-icon"><Lock size={12} /></span>
                     )}
                   </div>
                 </div>
@@ -434,7 +438,9 @@ export const NoteView: React.FC<NoteViewProps> = ({ onSwitchToCanvas }) => {
         </div>
         
         <div className="note-content">
-          {note.content?.startsWith('encrypted:') ? (
+          {note.content && 
+           typeof note.content === 'string' && 
+           note.content.startsWith('encrypted:') ? (
             <SecureNote 
               note={note} 
               onContentChange={handleContentChange} 
@@ -489,7 +495,7 @@ export const NoteView: React.FC<NoteViewProps> = ({ onSwitchToCanvas }) => {
   return (
     <div className="note-view">
       <div className="note-view-header">
-        <h1>Notes</h1>
+        <h1>VibeFlo Notes</h1>
         <button 
           className="switch-view-button"
           onClick={onSwitchToCanvas}

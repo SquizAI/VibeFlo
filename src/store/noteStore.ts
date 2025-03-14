@@ -32,6 +32,7 @@ interface NoteState {
     showCompletedNotes: boolean;
     defaultNoteColor: string;
     isSettingsOpen: boolean;
+    aiEnabled?: boolean;
   };
   addNote: (note: Note) => void;
   addComment: (noteId: string, text: string) => void;

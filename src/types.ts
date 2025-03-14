@@ -62,6 +62,7 @@ export interface Note {
   expanded?: boolean;
   reminder?: string;
   tasks?: Task[];
+  category?: string;
   size?: {
     width: number;
     height: number;

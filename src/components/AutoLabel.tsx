@@ -14,8 +14,9 @@ const AUTO_LABEL_CATEGORIES = [
 ];
 
 // Function to analyze note content and suggest labels
-export const suggestLabelsFromContent = (content: string): {name: string, color: string}[] => {
-  if (!content || content.trim().length < 5) return [];
+export const suggestLabelsFromContent = (content: string | null | undefined): {name: string, color: string}[] => {
+  // Return empty array if content is not a string or is empty
+  if (!content || typeof content !== 'string' || content.trim().length < 5) return [];
   
   const contentLower = content.toLowerCase();
   const suggestedCategories: {name: string, color: string}[] = [];
@@ -34,7 +35,7 @@ export const suggestLabelsFromContent = (content: string): {name: string, color:
 // Component for Auto Label suggestions
 interface AutoLabelSuggestionProps {
   noteId: string;
-  content: string;
+  content: string | null | undefined;
   onAddLabel: (noteId: string, label: {id: string, name: string, color: string}) => void;
 }
 
@@ -46,8 +47,8 @@ const AutoLabelSuggestion: React.FC<AutoLabelSuggestionProps> = ({
   const [suggestions, setSuggestions] = useState<{name: string, color: string}[]>([]);
   
   useEffect(() => {
-    if (content) {
-      // Only suggest labels if there's meaningful content
+    // Only suggest labels if there's content and it's a string
+    if (content && typeof content === 'string') {
       const newSuggestions = suggestLabelsFromContent(content);
       setSuggestions(newSuggestions);
     } else {
@@ -55,7 +56,7 @@ const AutoLabelSuggestion: React.FC<AutoLabelSuggestionProps> = ({
     }
   }, [content]);
   
-  if (suggestions.length === 0) return null;
+  if (!suggestions || suggestions.length === 0) return null;
   
   return (
     <div className="mt-2">
@@ -65,13 +66,15 @@ const AutoLabelSuggestion: React.FC<AutoLabelSuggestionProps> = ({
           <button
             key={`label-suggestion-${index}`}
             onClick={() => {
-              onAddLabel(noteId, {
-                id: crypto.randomUUID(),
-                name: suggestion.name,
-                color: suggestion.color
-              });
-              // Remove this suggestion
-              setSuggestions(prev => prev.filter((_, i) => i !== index));
+              if (suggestion && suggestion.name && suggestion.color) {
+                onAddLabel(noteId, {
+                  id: crypto.randomUUID(),
+                  name: suggestion.name,
+                  color: suggestion.color
+                });
+                // Remove this suggestion
+                setSuggestions(prev => prev.filter((_, i) => i !== index));
+              }
             }}
             className="flex items-center text-xs px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
             style={{ color: suggestion.color }}
