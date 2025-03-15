@@ -1,0 +1,27 @@
+{
+  "name": "tron",
+  "version": "0.1.0",
+  "description": "Task-Reactive Orchestration Network",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "ts-node AgentImplementation/test/run-tests.ts",
+    "start": "ts-node example/example.ts",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "immer": "^10.0.2",
+    "uuid": "^11.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^20.8.6",
+    "@types/uuid": "^10.0.0",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.5.3"
+  }
+} 
