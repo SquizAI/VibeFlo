@@ -160,9 +160,16 @@ export async function generateProjectSummary(notes: string[]) {
 
 /**
  * Transcribe audio using Deepgram's Nova-3 model for superior accuracy
+ * Falls back to browser's transcription if Deepgram fails
  */
 export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   try {
+    // Check if we have a valid API key - don't even try the request if we don't
+    if (!DEEPGRAM_API_KEY || DEEPGRAM_API_KEY === 'your_deepgram_api_key_here') {
+      console.warn('No Deepgram API key provided, skipping Deepgram transcription');
+      return ""; // Return empty string to trigger fallback
+    }
+    
     const arrayBuffer = await audioBlob.arrayBuffer();
     // Using Nova-3 model with additional features like smart formatting & punctuation
     const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true', {
@@ -175,16 +182,33 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Deepgram API error:', errorData);
-      throw new Error(`Failed to transcribe audio: ${response.status} ${response.statusText}`);
+      // Log detailed error for troubleshooting
+      let errorMessage = `${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        console.error('Deepgram API error details:', errorData);
+        if (errorData.error) {
+          errorMessage += `: ${errorData.error}`;
+        }
+      } catch (e) {
+        // Failed to parse error JSON, continue with basic error
+      }
+      
+      console.error('Deepgram API error:', errorMessage);
+      
+      // If we got a 401 error, the API key is invalid
+      if (response.status === 401) {
+        console.error('Invalid Deepgram API key. Please check your API key in the environment variables.');
+      }
+      
+      return ""; // Return empty string to trigger fallback
     }
 
     const result = await response.json();
     return result.results?.channels[0]?.alternatives[0]?.transcript || '';
   } catch (error) {
     console.error('Error in transcribeAudio:', error);
-    throw new Error('Failed to transcribe audio');
+    return ""; // Return empty string to trigger fallback
   }
 }
 

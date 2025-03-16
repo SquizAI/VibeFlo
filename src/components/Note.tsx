@@ -3,7 +3,7 @@ import { Note as NoteType, Position, Task, CategoryColorMap, Comment as NoteComm
 import {
   GripHorizontal, CheckSquare, Square, Trash2, Check, Calendar, Clock,
   Flag, Paperclip, MessageSquare, Tag, ChevronDown, ChevronUp, ChevronRight, Bell,
-  Palette, Maximize2, X, Plus, Edit, Sparkles, FolderPlus, Loader2
+  Palette, Maximize2, X, Plus, Edit, Sparkles, FolderPlus, Loader2, Lock, Unlock
 } from 'lucide-react';
 import { useNoteStore } from '../store/noteStore';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -27,6 +27,8 @@ import { calculateContrastingColor } from '../utils/colors';
 import { CommentThread } from './CommentThread';
 import { suggestTasks } from '../lib/ai';
 import { openai } from '../lib/openai';
+import { TaskList } from './TaskList';
+import { migrateTask, updateTaskDepths } from '../utils/taskMigrationUtil';
 
 interface NoteProps {
   note: NoteType;
@@ -53,6 +55,7 @@ interface NoteProps {
   onAddTag?: (id: string, tag: string) => void;
   onRemoveTag?: (id: string, tagId: string) => void;
   onNoteRef?: (ref: HTMLDivElement) => void;
+  isHighlighted?: boolean;
 }
 
 const colorClasses = {
@@ -730,7 +733,8 @@ export function Note({
   displayMode,
   onAddTag,
   onRemoveTag,
-  onNoteRef
+  onNoteRef,
+  isHighlighted = false
 }: NoteProps) {
   const [isDraggingThis, setIsDraggingThis] = useState(false);
   
@@ -775,6 +779,11 @@ export function Note({
   const [taskCategorySuggestions, setTaskCategorySuggestions] = useState<Array<{ task_text: string; suggested_category: string }>>([]);
   const [recommendedCategories, setRecommendedCategories] = useState<string[]>([]);
   const [taskSortBy, setTaskSortBy] = useState<'category' | 'priority'>('category');
+  const [isPasswordProtected, setIsPasswordProtected] = useState(note.isPasswordProtected || false);
+  const [password, setPassword] = useState<string>("");
+  const [isUnlocked, setIsUnlocked] = useState(!isPasswordProtected);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   
   // Update editedContent when note content changes
   useEffect(() => {
@@ -1367,133 +1376,31 @@ If you recommend new categories, include them in both task suggestions and the r
     setTaskSortBy(prev => prev === 'category' ? 'priority' : 'category');
   };
 
-  // Now modify the renderTasks function to use our EditableTask component
+  // Function to render tasks with the new TaskList component
   const renderTasks = () => {
-    if (!note.tasks) return null;
-    
-    // Group tasks by category
-    const tasksByCategory: {[category: string]: Task[]} = {};
-    
-    // Use "Uncategorized" as default category
-    tasksByCategory["Uncategorized"] = [];
-    
-    // Group tasks by their categories
-    note.tasks.forEach(task => {
-      const category = task.category || "Uncategorized";
-      if (!tasksByCategory[category]) {
-        tasksByCategory[category] = [];
-      }
-      tasksByCategory[category].push(task);
-    });
-    
-    // Calculate progress
-    const totalTasks = note.tasks.length;
-    const completedTasks = note.tasks.filter(task => task.done).length;
-    const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    
+    // Make sure we have valid tasks array
+    if (!note.tasks || !Array.isArray(note.tasks)) {
+      return null;
+    }
+
+    // Migrate legacy tasks to new format and update depths
+    const migratedTasks = updateTaskDepths(
+      note.tasks.map(task => migrateTask(task))
+    );
+
+    // Function to handle changes to tasks
+    const handleTasksChange = (updatedTasks: Task[]) => {
+      onUpdateNote?.(note.id, { tasks: updatedTasks });
+    };
+
     return (
-      <div className="tasks-container">
-        <div className="tasks-header">
-          <h4>Tasks</h4>
-          <div className="task-actions">
-            <button
-              onClick={handleAddTask}
-              className="task-action-button"
-              title="Add a new task"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Add task</span>
-            </button>
-            <button
-              onClick={handleTaskSuggestion}
-              className="task-action-button"
-              title="Get AI task suggestions"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Sparkles className="w-3 h-3" />
-              )}
-              <span>Suggest Tasks</span>
-            </button>
-          </div>
-        </div>
-        
-        {/* Task progress bar */}
-        {totalTasks > 0 && (
-          <div className="task-progress-container">
-            <div className="task-progress">
-              <div 
-                className="task-progress-bar" 
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-            <div className="task-progress-text">
-              {completedTasks} of {totalTasks} tasks completed ({Math.round(progressPercentage)}%)
-            </div>
-          </div>
-        )}
-        
-        {/* Add category button */}
-        <div className="task-category-controls">
-          <button 
-            onClick={() => {
-              // Logic to add a new category goes here
-              // You could show a modal or inline form
-              const category = prompt("Enter a category name");
-              if (category && category.trim()) {
-                // Update the first uncategorized task with this category
-                const uncategorized = tasksByCategory["Uncategorized"];
-                if (uncategorized.length > 0) {
-                  handleTaskUpdate(uncategorized[0].id, { category });
-                }
-              }
-            }}
-            className="add-category-button"
-            title="Create a new category"
-          >
-            <FolderPlus className="w-3 h-3" />
-            <span>Add Category</span>
-          </button>
-        </div>
-        
-        {Object.keys(tasksByCategory).some(category => tasksByCategory[category].length > 0) ? (
-          <div className="tasks-by-category">
-            {Object.entries(tasksByCategory).map(([category, tasks]) => (
-              // Skip rendering empty categories
-              tasks.length > 0 ? (
-                <div key={category} className="task-category-section">
-                  <div className="task-category-header">
-                    <h5>{category}</h5>
-                    <span className="task-count">{tasks.length}</span>
-                  </div>
-                  <div className="tasks-list">
-                    {tasks.map((task, index) => (
-                      <EditableTask
-                        key={task.id}
-                        task={task}
-                        index={index}
-                        moveTask={moveTask}
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskDelete={handleTaskDelete}
-                        onAddSubtask={handleAddSubtask}
-                        categoryColors={effectiveCategoryColors}
-                        depth={0}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : null
-            ))}
-          </div>
-        ) : (
-          // Empty state message when there are no tasks
-          <div className="no-tasks-message">
-            No tasks yet. Click "Add task" to create one or use "Suggest Tasks" for AI assistance.
-          </div>
-        )}
-      </div>
+      <TaskList 
+        tasks={migratedTasks}
+        onTasksChange={handleTasksChange}
+        showHeader={true}
+        showAddButton={true}
+        showFilters={true}
+      />
     );
   };
 
@@ -1788,131 +1695,60 @@ If you recommend new categories, include them in both task suggestions and the r
     );
   };
 
-  // Function to handle task reordering
-  const moveTask = useCallback(
-    (dragIndex: number, hoverIndex: number) => {
-      if (!note.tasks) return;
-      
-      const draggedTask = note.tasks[dragIndex];
-      
-      // Create a new array with the tasks in the new order
-      const updatedTasks = [...note.tasks];
-      updatedTasks.splice(dragIndex, 1); // Remove from old position
-      updatedTasks.splice(hoverIndex, 0, draggedTask); // Insert at new position
-      
-      // Update the note with the new task order
-      const updatedNote = { ...note, tasks: updatedTasks };
-      
-      // Call the appropriate update function
+  // Toggle password protection
+  const togglePasswordProtection = () => {
+    if (isPasswordProtected) {
+      // Remove password protection
+      setIsPasswordProtected(false);
+      setIsUnlocked(true);
+      setPassword("");
       if (onUpdateNote) {
-        onUpdateNote(note.id, { tasks: updatedTasks });
-      } else if (updateNote) {
-        updateNote(note.id, { tasks: updatedTasks });
+        onUpdateNote(note.id, { 
+          isPasswordProtected: false,
+          password: null
+        });
       }
-    },
-    [note, onUpdateNote, updateNote]
-  );
+    } else {
+      // Show password prompt to set a password
+      setShowPasswordPrompt(true);
+    }
+  };
 
-  // Function to handle task reordering within categories
-  const moveTaskWithinCategory = useCallback(
-    (taskId: string, fromCategoryId: string, toCategoryId: string, newIndex: number) => {
-      if (!note.tasks) return;
-      
-      // Group tasks by category
-      const tasksByCategory: Record<string, any[]> = {};
-      
-      // Initialize categories
-      note.tasks.forEach(task => {
-        const category = task.category || 'Uncategorized';
-        if (!tasksByCategory[category]) {
-          tasksByCategory[category] = [];
-        }
-        tasksByCategory[category].push(task);
+  // Set password and enable protection
+  const handleSetPassword = () => {
+    if (password.length < 4) {
+      setPasswordError("Password must be at least 4 characters");
+      return;
+    }
+    
+    setIsPasswordProtected(true);
+    setIsUnlocked(true);
+    setShowPasswordPrompt(false);
+    setPasswordError("");
+    
+    if (onUpdateNote) {
+      onUpdateNote(note.id, { 
+        isPasswordProtected: true,
+        password: password // In a real app, you'd hash this
       });
-      
-      // Find the task to move
-      const fromCategory = fromCategoryId || 'Uncategorized';
-      const toCategory = toCategoryId || 'Uncategorized';
-      
-      let taskToMove;
-      let fromCategoryTasks = tasksByCategory[fromCategory] || [];
-      
-      // Find and remove the task from its original category
-      for (let i = 0; i < fromCategoryTasks.length; i++) {
-        if (fromCategoryTasks[i].id === taskId) {
-          taskToMove = fromCategoryTasks[i];
-          fromCategoryTasks.splice(i, 1);
-          break;
-        }
-      }
-      
-      if (!taskToMove) return;
-      
-      // If moving to a different category, update the task's category
-      if (fromCategory !== toCategory) {
-        taskToMove = { ...taskToMove, category: toCategory };
-      }
-      
-      // Add the task to its new position in the target category
-      let toCategoryTasks = tasksByCategory[toCategory] || [];
-      if (newIndex > toCategoryTasks.length) {
-        newIndex = toCategoryTasks.length;
-      }
-      toCategoryTasks.splice(newIndex, 0, taskToMove);
-      
-      // Update the categories in our map
-      tasksByCategory[fromCategory] = fromCategoryTasks;
-      tasksByCategory[toCategory] = toCategoryTasks;
-      
-      // Flatten all tasks back into a single array
-      const updatedTasks = Object.values(tasksByCategory).flat();
-      
-      // Update the note with the reorganized tasks
-      const updatedNote = { ...note, tasks: updatedTasks };
-      
-      // Call the appropriate update function
-      if (onUpdateNote) {
-        onUpdateNote(note.id, { tasks: updatedTasks });
-      } else if (updateNote) {
-        updateNote(note.id, { tasks: updatedTasks });
-      }
-    },
-    [note, onUpdateNote, updateNote]
-  );
+    }
+  };
 
-  // Function to handle task priority changes
-  const changeTaskPriority = useCallback(
-    (taskId: string, newPriority: 'high' | 'medium' | 'low') => {
-      if (!note.tasks) return;
-      
-      // Find the task to update
-      const taskIndex = note.tasks.findIndex(task => task.id === taskId);
-      if (taskIndex === -1) return;
-      
-      // Create a copy of the tasks array with the updated task
-      const updatedTasks = [...note.tasks];
-      updatedTasks[taskIndex] = {
-        ...updatedTasks[taskIndex],
-        priority: newPriority
-      };
-      
-      // Update the note with the modified tasks
-      const updatedNote = { ...note, tasks: updatedTasks };
-      
-      // Call the appropriate update function
-      if (onUpdateNote) {
-        onUpdateNote(note.id, { tasks: updatedTasks });
-      } else if (updateNote) {
-        updateNote(note.id, { tasks: updatedTasks });
-      }
-    },
-    [note, onUpdateNote, updateNote]
-  );
+  // Try to unlock a password-protected note
+  const handleUnlock = () => {
+    if (password === note.password) { // In a real app, you'd compare hashes
+      setIsUnlocked(true);
+      setShowPasswordPrompt(false);
+      setPasswordError("");
+    } else {
+      setPasswordError("Incorrect password");
+    }
+  };
 
   return (
     <div
       ref={nodeRef}
-      className={`note ${note.color} ${isSelected ? 'selected' : ''} ${isDraggingThis ? 'dragging' : ''} ${noteIsEnlarged ? 'enlarged' : ''}`}
+      className={`note ${note.color} ${isSelected ? 'selected' : ''} ${isDraggingThis ? 'dragging' : ''} ${noteIsEnlarged ? 'enlarged' : ''} ${isHighlighted ? 'highlighted' : ''}`}
       style={{
         width: noteIsEnlarged ? '80vw' : (note.size ? `${note.size.width}px` : undefined),
         height: noteIsEnlarged ? '80vh' : (note.size ? `${note.size.height}px` : undefined),
@@ -1969,27 +1805,44 @@ If you recommend new categories, include them in both task suggestions and the r
               ))}
             </div>
           )}
-          {note.priority && (
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              note.priority === 'high' ? 'bg-rose-500/20 text-rose-300' :
-              note.priority === 'medium' ? 'bg-amber-500/20 text-amber-300' :
-              'bg-blue-500/20 text-blue-300'
-            }`}>
-              {note.priority}
-            </span>
-          )}
-          {note.completed && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">
-              Completed
-            </span>
-          )}
-          {note.dueDate && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">
-              {new Date(note.dueDate).toLocaleDateString()}
-            </span>
-          )}
+          
+          {/* Display metadata pills only when they exist */}
+          <div className="note-metadata">
+            {note.priority && (
+              <span className={`metadata-pill priority-${note.priority}`}>
+                <Flag size={12} />
+                {note.priority}
+              </span>
+            )}
+            {note.completed && (
+              <span className="metadata-pill completed">
+                <Check size={12} />
+                Completed
+              </span>
+            )}
+            {note.dueDate && (
+              <span className="metadata-pill due-date">
+                <Calendar size={12} />
+                {new Date(note.dueDate).toLocaleDateString()}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Add lock/unlock button */}
+          <button
+            onClick={togglePasswordProtection}
+            className="p-1 hover:bg-white/10 rounded transition-colors"
+            aria-label={isPasswordProtected ? "Remove password protection" : "Add password protection"}
+            title={isPasswordProtected ? "Protected" : "Add password protection"}
+          >
+            {isPasswordProtected ? (
+              <Lock className="w-4 h-4 text-accent-blue" />
+            ) : (
+              <Lock className="w-4 h-4 opacity-50" />
+            )}
+          </button>
+          
           <button
             onClick={() => setLocalEnlarged(!noteIsEnlarged)}
             className="p-1 hover:bg-white/10 rounded transition-colors"
@@ -2029,95 +1882,171 @@ If you recommend new categories, include them in both task suggestions and the r
           </button>
         </div>
       </div>
-      <textarea
-        className={`w-full p-4 bg-transparent resize-none focus:outline-none ${
-          note.completed ? 'opacity-75 line-through' : ''
-        }`}
-        placeholder="Write something..."
-        value={note.content}
-        onChange={(e) => {
-          e.stopPropagation();
-          onContentChange(note.id, e.target.value);
-        }}
-        onClick={handleContentClick}
-        onMouseDown={(e) => e.stopPropagation()}
-        onDoubleClick={handleContentDoubleClick}
-        rows={noteIsEnlarged ? 16 : 4}
-      />
-      {note.tasks && note.tasks.length > 0 && (
-        <div className="px-4 pb-4">
-          <div className="text-sm font-medium text-white/90 mb-2">Tasks:</div>
-          <div className="space-y-2">
-            {renderTasks()}
+
+      {/* Password protection overlay */}
+      {isPasswordProtected && !isUnlocked && (
+        <div className="secure-note-locked">
+          <div className="lock-icon">
+            <Lock size={32} />
           </div>
+          <h3>Password Protected</h3>
+          <p>This note is secured. Enter the password to view its contents.</p>
+          <form 
+            className="password-form" 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleUnlock();
+            }}
+          >
+            <input 
+              type="password" 
+              className="password-input" 
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {passwordError && <div className="password-error">{passwordError}</div>}
+            <button type="submit" className="unlock-button">
+              <Unlock size={16} />
+              Unlock
+            </button>
+          </form>
         </div>
       )}
-      {/* Add resize handles */}
-      <div 
-        className="resize-handle resize-right"
-        onMouseDown={(e) => handleResizeStart('right', e)}
-      />
-      <div 
-        className="resize-handle resize-bottom"
-        onMouseDown={(e) => handleResizeStart('bottom', e)}
-      />
-      <div 
-        className="resize-handle resize-corner"
-        onMouseDown={(e) => handleResizeStart('corner', e)}
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 9L1 1M5 9L1 5M9 5L5 1" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-        </svg>
-      </div>
-      
-      {/* Auto label suggestions */}
-      {note.expanded && (
-        <AutoLabelSuggestion 
-          noteId={note.id} 
-          content={note.content} 
-          onAddLabel={addLabel} 
-        />
-      )}
-      
-      {note.labels && note.labels.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {note.labels.map(label => (
-            <div
-              key={`${note.id}-label-${label.id}`}
-              className="flex items-center text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: `${label.color}30`, color: label.color }}
-            >
-              <span>{label.name}</span>
-              <div className="flex ml-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const newName = prompt('Edit label name:', label.name);
-                    if (newName) {
-                      updateLabel(note.id, label.id, { ...label, name: newName });
-                    }
-                  }}
-                  className="ml-1 p-0.5 hover:bg-white/10 rounded-full"
-                >
-                  <Edit className="w-2 h-2" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeLabel(note.id, label.id);
-                  }}
-                  className="ml-1 p-0.5 hover:bg-white/10 rounded-full"
-                >
-                  <X className="w-2 h-2" />
-                </button>
-              </div>
+
+      {/* Password setting dialog */}
+      {showPasswordPrompt && !isPasswordProtected && (
+        <div className="secure-note-locked">
+          <div className="lock-icon">
+            <Lock size={32} />
+          </div>
+          <h3>Set Password</h3>
+          <p>Create a password to protect this note.</p>
+          <form 
+            className="password-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSetPassword();
+            }}
+          >
+            <input 
+              type="password" 
+              className="password-input" 
+              placeholder="Create password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            {passwordError && <div className="password-error">{passwordError}</div>}
+            <div className="flex gap-2 mt-2">
+              <button type="submit" className="unlock-button">
+                <Lock size={16} />
+                Set Password
+              </button>
+              <button 
+                type="button"
+                className="unlock-button cancel" 
+                onClick={() => {
+                  setShowPasswordPrompt(false);
+                  setPassword("");
+                  setPasswordError("");
+                }}
+              >
+                Cancel
+              </button>
             </div>
-          ))}
+          </form>
         </div>
       )}
-      
-      {/* Add task suggestions panel */}
-      {renderTaskSuggestions()}
+
+      {/* Only show content if not password protected or if unlocked */}
+      {(!isPasswordProtected || isUnlocked) && (
+        <>
+          {/* Existing content rendering */}
+          <textarea
+            className={`w-full p-4 bg-transparent resize-none focus:outline-none ${
+              note.completed ? 'opacity-75 line-through' : ''
+            }`}
+            placeholder="Write something..."
+            value={note.content}
+            onChange={(e) => {
+              e.stopPropagation();
+              onContentChange(note.id, e.target.value);
+            }}
+            onClick={handleContentClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            onDoubleClick={handleContentDoubleClick}
+            rows={noteIsEnlarged ? 16 : 4}
+          />
+          {note.type === 'task' && renderTasks()}
+          {/* Add resize handles */}
+          <div 
+            className="resize-handle resize-right"
+            onMouseDown={(e) => handleResizeStart('right', e)}
+          />
+          <div 
+            className="resize-handle resize-bottom"
+            onMouseDown={(e) => handleResizeStart('bottom', e)}
+          />
+          <div 
+            className="resize-handle resize-corner"
+            onMouseDown={(e) => handleResizeStart('corner', e)}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 9L1 1M5 9L1 5M9 5L5 1" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+            </svg>
+          </div>
+          
+          {/* Auto label suggestions */}
+          {note.expanded && (
+            <AutoLabelSuggestion 
+              noteId={note.id} 
+              content={note.content} 
+              onAddLabel={addLabel} 
+            />
+          )}
+          
+          {note.labels && note.labels.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {note.labels.map(label => (
+                <div
+                  key={`${note.id}-label-${label.id}`}
+                  className="flex items-center text-xs px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${label.color}30`, color: label.color }}
+                >
+                  <span>{label.name}</span>
+                  <div className="flex ml-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newName = prompt('Edit label name:', label.name);
+                        if (newName) {
+                          updateLabel(note.id, label.id, { ...label, name: newName });
+                        }
+                      }}
+                      className="ml-1 p-0.5 hover:bg-white/10 rounded-full"
+                    >
+                      <Edit className="w-2 h-2" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeLabel(note.id, label.id);
+                      }}
+                      className="ml-1 p-0.5 hover:bg-white/10 rounded-full"
+                    >
+                      <X className="w-2 h-2" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Add task suggestions panel */}
+          {renderTaskSuggestions()}
+        </>
+      )}
     </div>
   );
 }

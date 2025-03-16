@@ -1,0 +1,367 @@
+/* Agent Feedback Styles */
+.agent-feedback {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  background-color: rgba(13, 18, 30, 0.9);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  animation: feedback-slide-up 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.agent-feedback-content {
+  padding: 16px;
+}
+
+.agent-feedback-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.agent-feedback-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-left: 12px;
+}
+
+.agent-feedback-close {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.agent-feedback-close:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.agent-feedback-message {
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.agent-feedback-progress,
+.agent-feedback-confidence {
+  margin-bottom: 8px;
+}
+
+.progress-bar,
+.confidence-bar {
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: rgba(0, 180, 250, 0.8);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 180, 250, 0.3) 25%,
+    rgba(0, 180, 250, 0.8) 50%,
+    rgba(0, 180, 250, 0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: progress-shine 1.5s infinite linear;
+}
+
+.confidence-fill {
+  height: 100%;
+  background-color: rgba(52, 211, 153, 0.8);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.progress-text,
+.confidence-value {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: right;
+}
+
+.confidence-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+}
+
+/* Activity icons and animations */
+.activity-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activity-icon.thinking {
+  background-color: rgba(0, 180, 250, 0.1);
+  position: relative;
+}
+
+.pulse-ring {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background-color: rgba(0, 180, 250, 0.7);
+  border-radius: 50%;
+  opacity: 1;
+}
+
+.pulse-ring::before,
+.pulse-ring::after {
+  content: '';
+  position: absolute;
+  border: 2px solid rgba(0, 180, 250, 0.5);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+.pulse-ring::before {
+  width: 25px;
+  height: 25px;
+  animation-delay: 0.5s;
+}
+
+.pulse-ring::after {
+  width: 30px;
+  height: 30px;
+  animation-delay: 1s;
+}
+
+.activity-icon.searching {
+  background-color: rgba(236, 72, 153, 0.1);
+  position: relative;
+}
+
+.search-animation {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(236, 72, 153, 0.7);
+  border-radius: 50%;
+}
+
+.search-animation::after {
+  content: '';
+  position: absolute;
+  height: 7px;
+  width: 2px;
+  background-color: rgba(236, 72, 153, 0.7);
+  bottom: -6px;
+  right: -1px;
+  transform: rotate(45deg);
+  animation: search-handle 1.5s infinite;
+  transform-origin: top center;
+}
+
+.activity-icon.processing {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+.activity-icon.processing .spin {
+  color: rgba(124, 58, 237, 0.8);
+  animation: spin 1.5s linear infinite;
+}
+
+.activity-icon.analyzing {
+  background-color: rgba(251, 191, 36, 0.1);
+  position: relative;
+}
+
+.analyze-grid {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.analyze-grid::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  background-color: rgba(251, 191, 36, 0.3);
+  animation: analyze-scan 2s infinite linear;
+}
+
+.activity-icon.complete {
+  background-color: rgba(52, 211, 153, 0.1);
+}
+
+.activity-icon.complete svg {
+  color: rgba(52, 211, 153, 0.8);
+  animation: complete-check 0.5s ease-out;
+}
+
+.activity-icon.error {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.activity-icon.error svg {
+  color: rgba(239, 68, 68, 0.8);
+}
+
+.activity-icon.info {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.activity-icon.info svg {
+  color: rgba(59, 130, 246, 0.8);
+}
+
+/* Different colored borders based on activity type */
+.activity-thinking {
+  border-left: 3px solid rgba(0, 180, 250, 0.8);
+}
+
+.activity-searching {
+  border-left: 3px solid rgba(236, 72, 153, 0.8);
+}
+
+.activity-processing {
+  border-left: 3px solid rgba(124, 58, 237, 0.8);
+}
+
+.activity-analyzing {
+  border-left: 3px solid rgba(251, 191, 36, 0.8);
+}
+
+.activity-complete {
+  border-left: 3px solid rgba(52, 211, 153, 0.8);
+}
+
+.activity-error {
+  border-left: 3px solid rgba(239, 68, 68, 0.8);
+}
+
+.activity-info {
+  border-left: 3px solid rgba(59, 130, 246, 0.8);
+}
+
+/* Animations */
+@keyframes feedback-slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+  }
+  100% {
+    width: 32px;
+    height: 32px;
+    opacity: 0;
+  }
+}
+
+@keyframes search-handle {
+  0%, 100% {
+    transform: rotate(45deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes analyze-scan {
+  0% {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+  }
+  25% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+  50% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+  75% {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+  }
+}
+
+@keyframes complete-check {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes progress-shine {
+  to {
+    background-position: -200% 0;
+  }
+} 

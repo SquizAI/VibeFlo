@@ -1,0 +1,446 @@
+/* Dictation Preview Panel Styling */
+:root {
+  --dictation-primary: #ff3d7f;
+  --dictation-primary-light: rgba(255, 61, 127, 0.1);
+  --dictation-primary-medium: rgba(255, 61, 127, 0.3);
+  --dictation-primary-hover: #ff5b93;
+  --dictation-background: #111215;
+  --dictation-text-primary: #e5e7eb;
+  --dictation-text-secondary: #9ca3af;
+  --dictation-text-tertiary: #6c7280;
+  --dictation-card-bg: rgba(255, 255, 255, 0.05);
+  --dictation-card-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Main Panel Container */
+.dictation-preview-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 800px;
+  background-color: var(--dictation-background);
+  border: 2px solid var(--dictation-primary);
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 61, 127, 0.3);
+  z-index: 1000;
+  overflow: hidden;
+  color: var(--dictation-text-primary);
+  animation: dictationPanelFadeIn 0.3s ease-out forwards;
+}
+
+/* Panel Header */
+.dictation-preview-header {
+  background-color: var(--dictation-primary-light);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--dictation-primary-medium);
+}
+
+.dictation-preview-header h3 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--dictation-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dictation-preview-header h3::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: var(--dictation-primary);
+  border-radius: 50%;
+  animation: dictationPulse 1.5s infinite;
+}
+
+/* Action Buttons */
+.dictation-preview-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.dictation-preview-action {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dictation-preview-action.approve {
+  background-color: var(--dictation-primary);
+  color: #fff;
+  border: none;
+}
+
+.dictation-preview-action.approve:hover {
+  background-color: var(--dictation-primary-hover);
+  box-shadow: 0 0 10px rgba(255, 61, 127, 0.5);
+}
+
+.dictation-preview-action.cancel {
+  background-color: transparent;
+  border: 1px solid var(--dictation-text-tertiary);
+  color: var(--dictation-text-tertiary);
+}
+
+.dictation-preview-action.cancel:hover {
+  border-color: var(--dictation-text-primary);
+  color: var(--dictation-text-primary);
+}
+
+/* Main Content Area */
+.dictation-preview-content {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Results Summary */
+.dictation-results-summary {
+  text-align: center;
+  padding: 12px;
+  background-color: rgba(255, 61, 127, 0.05);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--dictation-text-secondary);
+}
+
+/* Note Preview */
+.dictation-preview-note {
+  display: flex;
+  margin-bottom: 20px;
+  background-color: var(--dictation-card-bg);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--dictation-card-border);
+}
+
+.dictation-preview-note:last-child {
+  margin-bottom: 0;
+}
+
+/* Note Color Indicator */
+.dictation-preview-note-color {
+  width: 6px;
+  flex-shrink: 0;
+}
+
+.dictation-preview-note-color.blue { background-color: #3b82f6; }
+.dictation-preview-note-color.green { background-color: #10b981; }
+.dictation-preview-note-color.pink { background-color: #ec4899; }
+.dictation-preview-note-color.yellow { background-color: #f59e0b; }
+.dictation-preview-note-color.purple { background-color: #8b5cf6; }
+.dictation-preview-note-color.red { background-color: #ef4444; }
+
+/* Note Content */
+.dictation-preview-note-content {
+  padding: 16px;
+  flex-grow: 1;
+}
+
+/* Category and Metadata */
+.dictation-preview-note-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dictation-preview-category {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--dictation-text-secondary);
+}
+
+.category-label {
+  font-weight: 500;
+}
+
+.dictation-preview-task-count {
+  display: inline-block;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Note Text Content */
+.dictation-preview-note-text {
+  white-space: pre-line;
+  line-height: 1.6;
+}
+
+.dictation-preview-note-text strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.dictation-preview-note-text ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.dictation-preview-note-text li {
+  margin-bottom: 6px;
+  position: relative;
+}
+
+/* Task List Styling */
+.dictation-preview-tasks {
+  margin-top: 12px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.dictation-preview-tasks-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dictation-preview-task-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  gap: 10px;
+}
+
+.dictation-preview-task-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--dictation-primary);
+}
+
+.dictation-preview-task-more {
+  font-size: 12px;
+  color: var(--dictation-text-secondary);
+  padding: 4px 0 4px 16px;
+  font-style: italic;
+}
+
+/* AI Reasoning Section */
+.dictation-preview-ai-reasoning {
+  margin-top: 20px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.dictation-preview-ai-reasoning-toggle {
+  background: none;
+  border: none;
+  color: var(--dictation-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+
+.dictation-preview-ai-reasoning-content {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dictation-text-secondary);
+  border-left: 2px solid var(--dictation-primary-medium);
+  padding-left: 12px;
+}
+
+/* Brainstorm Button */
+.dictation-preview-brainstorm-button {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin-top: 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.dictation-preview-brainstorm-button:hover {
+  background-color: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+/* Animations */
+@keyframes dictationPulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes dictationPanelFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .dictation-preview-panel {
+    width: 95%;
+    max-width: none;
+  }
+  
+  .dictation-preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .dictation-preview-actions {
+    width: 100%;
+  }
+  
+  .dictation-preview-action {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* Recording Panel Specific Styles */
+.recording-panel {
+  background-color: #000000;
+  border: 3px solid var(--dictation-primary);
+  box-shadow: 0 0 25px rgba(255, 61, 127, 0.3);
+  max-width: 600px;
+  min-height: 200px;
+  animation: pulse-border 1.5s infinite;
+}
+
+/* Recording Status Indicators */
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  font-weight: 500;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: rgba(255, 61, 127, 0.1);
+}
+
+.recording-indicator.error {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: rgb(239, 68, 68);
+}
+
+.recording-indicator.warning {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: rgb(245, 158, 11);
+}
+
+.recording-pulse {
+  width: 12px;
+  height: 12px;
+  background-color: #ff3d7f;
+  border-radius: 50%;
+  animation: pulse 1.2s infinite;
+}
+
+.recording-indicator.error .recording-pulse {
+  background-color: rgb(239, 68, 68);
+  animation: pulse 0.5s infinite;
+}
+
+.recording-indicator.warning .recording-pulse {
+  background-color: rgb(245, 158, 11);
+  animation: pulse 1s infinite;
+}
+
+/* Improve dictation transcript area */
+.dictation-transcript {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 100px;
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-top: 10px;
+  color: #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.transcript-placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+.interim-text {
+  color: rgba(255, 61, 127, 0.9);
+  font-style: italic;
+}
+
+/* Increase the pulsing of the panel border during active recording */
+@keyframes pulse-border {
+  0% {
+    border-color: var(--dictation-primary);
+    box-shadow: 0 0 15px rgba(255, 61, 127, 0.3);
+  }
+  50% {
+    border-color: #ff1a66;
+    box-shadow: 0 0 30px rgba(255, 61, 127, 0.7);
+  }
+  100% {
+    border-color: var(--dictation-primary);
+    box-shadow: 0 0 15px rgba(255, 61, 127, 0.3);
+  }
+} 

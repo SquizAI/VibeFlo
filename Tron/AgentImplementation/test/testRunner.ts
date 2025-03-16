@@ -16,6 +16,12 @@ if (!testName) {
   console.log('Available tests:');
   console.log('  - WorkflowDomainAgentTest');
   console.log('  - TaskWorkerAgentTest');
+  console.log('  - MessageBusTest');
+  console.log('  - StatePersistenceTest');
+  console.log('  - SecurityModuleTest');
+  console.log('  - PluginSystemTest');
+  console.log('  - ToolsSystemTest');
+  console.log('  - FunctionCallingTest');
   process.exit(1);
 }
 
@@ -32,8 +38,34 @@ async function runTest() {
         // Dynamic import to run the test file
         await import('./TaskWorkerAgentTest.js');
         break;
+      case 'MessageBusTest':
+        console.log('Running MessageBusTest...');
+        await import('./MessageBusTest.js');
+        break;
+      case 'StatePersistenceTest':
+        console.log('Running StatePersistenceTest...');
+        await import('./StatePersistenceTest.js');
+        break;
+      case 'SecurityModuleTest':
+        console.log('Running SecurityModuleTest...');
+        await import('./SecurityModuleTest.js');
+        break;
+      case 'PluginSystemTest':
+        console.log('Running PluginSystemTest...');
+        await import('./PluginSystemTest.js');
+        break;
+      case 'ToolsSystemTest':
+        console.log('Running ToolsSystemTest...');
+        const { testToolsSystem } = await import('./ToolsSystemTest.js');
+        await testToolsSystem();
+        break;
+      case 'FunctionCallingTest':
+        console.log('Running Function Calling Tests...');
+        await import('./FunctionCallingTest.js');
+        break;
       default:
         console.error(`Unknown test: ${testName}`);
+        console.log('Use one of: MessageBusTest, StatePersistenceTest, SecurityModuleTest, PluginSystemTest, ToolsSystemTest, FunctionCallingTest');
         process.exit(1);
     }
   } catch (error) {
