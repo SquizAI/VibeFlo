@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Main background */
+    --app-bg: #000000;
+    --card-bg: #0D0D14;
+    --card-hover: #16161E;
+    --node-bg: #16161E;
+    
+    /* Text colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #94A3B8;
+    
+    /* UI element colors */
+    --border-light: rgba(255, 255, 255, 0.1);
+    
+    /* Accent colors */
+    --accent-blue: #2E7DFF;
+    --accent-green: #00BFA5;
+    --accent-pink: #FF2E8F;
+    --accent-yellow: #FFCB2E;
+    --accent-purple: #9C27B0;
+    --accent-orange: #FF9800;
+    --accent-teal: #00BCD4;
+    --accent-red: #F44336;
+    --accent-indigo: #3F51B5;
+    --accent-amber: #FFC107;
+    --accent-emerald: #4CAF50;
+    --accent-rose: #E91E63;
+    
+    /* Glow colors */
+    --accent-blue-glow: rgba(46, 125, 255, 0.35);
+    --accent-green-glow: rgba(0, 191, 165, 0.35);
+    --accent-pink-glow: rgba(255, 46, 143, 0.35);
+    --accent-yellow-glow: rgba(255, 203, 46, 0.35);
+    --accent-purple-glow: rgba(156, 39, 176, 0.35);
+    --accent-orange-glow: rgba(255, 152, 0, 0.35);
+    --accent-teal-glow: rgba(0, 188, 212, 0.35);
+    --accent-red-glow: rgba(244, 67, 54, 0.35);
+    --accent-indigo-glow: rgba(63, 81, 181, 0.35);
+    --accent-amber-glow: rgba(255, 193, 7, 0.35);
+    --accent-emerald-glow: rgba(76, 175, 80, 0.35);
+    --accent-rose-glow: rgba(233, 30, 99, 0.35);
+
+    /* Add CSS variable for the color values used in the KanbanCard */
+    --color-blue-500: rgb(59, 130, 246);
+    --color-green-500: rgb(34, 197, 94);
+    --color-red-500: rgb(239, 68, 68);
+    --color-yellow-500: rgb(234, 179, 8);
+    --color-purple-500: rgb(168, 85, 247);
+    --color-pink-500: rgb(236, 72, 153);
+    --color-indigo-500: rgb(99, 102, 241);
+    --color-teal-500: rgb(20, 184, 166);
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Pulse animation for recording indicator */
+@keyframes strongPulse {
+  0% { 
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 46, 143, 0.7);
+  }
+  70% { 
+    opacity: 0.7;
+    box-shadow: 0 0 0 10px rgba(255, 46, 143, 0);
+  }
+  100% { 
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 46, 143, 0);
+  }
+}
+
+.animate-strongPulse {
+  animation: strongPulse 2s infinite;
+}
+
+/* Add custom scrollbar for the Kanban lanes */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+
+/* View transition animations */
+@keyframes fadeInTransition {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOutTransition {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.view-transition {
+  animation: fadeOutTransition 0.15s ease-out, fadeInTransition 0.15s ease-in 0.15s;
+}
+
+/* Highlight animation for notes */
+.highlight-note {
+  box-shadow: 0 0 0 3px var(--accent-blue), 0 0 20px rgba(59, 130, 246, 0.6) !important;
+  animation: pulseHighlight 1.5s ease-in-out;
+}
+
+@keyframes pulseHighlight {
+  0% { box-shadow: 0 0 0 3px var(--accent-blue), 0 0 20px rgba(59, 130, 246, 0.6); }
+  50% { box-shadow: 0 0 0 6px var(--accent-blue), 0 0 30px rgba(59, 130, 246, 0.8); }
+  100% { box-shadow: 0 0 0 3px var(--accent-blue), 0 0 20px rgba(59, 130, 246, 0.6); }
+}
+
+/* Prevent canvas movement during note dragging */
+.note-dragging {
+  cursor: grabbing !important;
+}
+
+.note-dragging .react-transform-component {
+  pointer-events: none !important;
+}
+
+.note-dragging .note {
+  pointer-events: auto !important;
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+/* Prevent text selection during dragging */
+.note-dragging * {
+  user-select: none !important;
+}
+
+/* Hide the tabs in the right panel */
+.tabs.h-full.flex.flex-col {
+  flex-direction: column;
+  /* Remove any border that visually separates the tabs */
+  border: none !important;
+}
+
+.tabs.h-full.flex.flex-col > .border-b.border-border-light.px-2 {
+  display: none !important;
+}
+
+.tabs-list.grid.grid-cols-3 {
+  display: none !important;
+}
+
+/* Ensure the content takes full height */
+.tabs-content.flex-1.overflow-auto {
+  height: 100% !important;
+}
+
+/* Make sure the search and sort components have good spacing */
+.tabs-content .p-4 {
+  padding: 1rem;
+}
+
+/* Folder Navigation Styles */
+.folder-navigation {
+  @apply h-full flex flex-col;
+}
+
+.folder-search {
+  @apply sticky top-0 z-10;
+  background-color: var(--app-bg);
+  backdrop-filter: blur(8px);
+}
+
+.folder-list {
+  @apply flex-1 overflow-y-auto;
+}
+
+/* Note View Styles */
+.note-view {
+  @apply flex flex-col w-full;
+}
+
+.note-view-container {
+  @apply flex-1 overflow-y-auto;
+}
+
+.note-list {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+/* Remove side panel styles */
+.side-panel,
+.side-panel-header,
+.side-panel-content,
+.side-panel-toggle,
+.side-panel.hidden {
+  display: none !important;
+}
+
+/* Ensure main content takes full width */
+.note-view,
+.note-view-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Remove any margin/padding adjustments for side panel */
+.canvas-with-side-panel {
+  margin-right: 0 !important;
+}
+
+/* Reset main content sizing */
+.main-content {
+  width: 100%;
+}
+
+.tabs {
+  display: none !important;
+}
+
+.tabs-list {
+  display: none !important;
+}
+
+.tabs-trigger {
+  display: none !important;
+}
+
+.tabs-content {
+  display: none !important;
+}
