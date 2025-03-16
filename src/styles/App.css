@@ -1,0 +1,76 @@
+/* Add styles for the voice recording button */
+.app-nav-button.voice-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f3f4f6;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.app-nav-button.voice-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.app-nav-button.voice-button.recording {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding-right: 40px;
+}
+
+.app-nav-button .recording-indicator {
+  position: absolute;
+  right: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.app-nav-button .recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  position: relative;
+}
+
+.app-nav-button .recording-dot::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: inherit;
+  animation: pulse-recording 1.5s ease-out infinite;
+}
+
+@keyframes pulse-recording {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* Make sure we have a responsive design for mobile */
+@media (max-width: 768px) {
+  .app-nav-button.voice-button {
+    padding: 8px;
+  }
+  
+  .app-nav-button.voice-button span {
+    display: none;
+  }
+  
+  .app-nav-button.voice-button.recording {
+    padding-right: 30px;
+  }
+} 

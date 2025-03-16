@@ -139,6 +139,12 @@ export interface Note {
   securityLevel?: 'none' | 'low' | 'medium' | 'high'; // Optional security level for different encryption types
   isHidden?: boolean;
   isLocked?: boolean;
+  insights?: {
+    key_topics?: string[];
+    timeframe?: string;
+    action_required?: boolean;
+    summary?: string;
+  };
 }
 
 export interface NoteVersion {

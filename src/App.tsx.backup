@@ -3,7 +3,7 @@ import { Note as NoteComponent } from './components/Note';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Routes, Route, BrowserRouter, Link, useNavigate } from 'react-router-dom';
-import { Note, Task, Position } from './types';
+import { Note, Task, Position, Size } from './types';
 import { Mic, Home, Grid, Move, Minimize, Zap, Search, Command, HelpCircle, FileStack, ZoomIn, Settings, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import './styles.css';
 import './styles/taskListStyles.css';
@@ -15,33 +15,6 @@ import NoteSidebar from './components/NoteSidebar';
 import DictationPreview from './components/DictationPreview';
 import { transcribeAudio, enhanceTranscribedText, extractKeyTerms, createFallbackNoteFromDictation } from './lib/ai';
 import { openai, validateApiKey } from './lib/openai';
-
-// Type definitions for the Web Speech API - move to top level
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-    speechRecognitionInstance: any;
-  }
-  
-  interface SpeechRecognitionEvent extends Event {
-    resultIndex: number;
-    results: {
-      [index: number]: {
-        [index: number]: {
-          transcript: string;
-        };
-        isFinal: boolean;
-        length: number;
-      };
-      length: number;
-    };
-  }
-  
-  interface SpeechRecognitionErrorEvent extends Event {
-    error: string;
-  }
-}
 
 // Mock nutrition database for common grocery items
 const NUTRITION_DATABASE: { [key: string]: { calories: number, protein: number, carbs: number, fat: number } } = {
@@ -1133,9 +1106,11 @@ IMPORTANT RULES:
       }
       return totals;
     }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
-  };
 
-  // Since there are too many type conflicts, we'll use any for the return type
+  // Since there are too many type conflicts, let's modify our approach
+  // Instead of completely changing the Note type, we'll just use any 
+  // for the returned object in createNoteFromData to avoid conflicts
+  // and then cast it appropriately when needed.
   const createNoteFromData = (data: any, yOffset: number): any => {
     if (!data) return null;
     
@@ -1254,37 +1229,35 @@ IMPORTANT RULES:
     <BrowserRouter>
       <DndProvider backend={HTML5Backend}>
         <div className="app">
-          {/* Centered Recording Tooltip - only shown when dictation popup is not active */}
-          {!showDictationPopup && (
-            <div className={`recording-tooltip ${recording ? 'recording-active' : ''}`}>
-              <button 
-                className="recording-tooltip-close" 
-                onClick={() => recording ? toggleRecording() : null}
-              >
-                <X size={20} />
-              </button>
-              <div className="recording-tooltip-content">
-                {recording ? 
-                  <>
-                    <div className="recording-status">
-                      <div className="recording-pulse"></div>
-                      <span>Recording... {recordingTime > 0 ? new Date(recordingTime * 1000).toISOString().substr(14, 5) : ''}</span>
-                    </div>
-                    <button 
-                      className="recording-stop-button"
-                      onClick={toggleRecording}
-                    >
-                      Stop Recording
-                    </button>
-                  </>
-                  : 
-                  <div className="recording-instructions">
-                    Press to start recording
+          {/* Centered Recording Tooltip */}
+          <div className={`recording-tooltip ${recording ? 'recording-active' : ''}`}>
+            <button 
+              className="recording-tooltip-close" 
+              onClick={() => recording ? toggleRecording() : null}
+            >
+              <X size={20} />
+            </button>
+            <div className="recording-tooltip-content">
+              {recording ? 
+                <>
+                  <div className="recording-status">
+                    <div className="recording-pulse"></div>
+                    <span>Recording... {recordingTime > 0 ? new Date(recordingTime * 1000).toISOString().substr(14, 5) : ''}</span>
                   </div>
-                }
-              </div>
+                  <button 
+                    className="recording-stop-button"
+                    onClick={toggleRecording}
+                  >
+                    Stop Recording
+                  </button>
+                </>
+                : 
+                <div className="recording-instructions">
+                  Press to start recording
+                </div>
+              }
             </div>
-          )}
+          </div>
 
           <AppNavigation />
           <div className="app-content">
@@ -1433,25 +1406,12 @@ IMPORTANT RULES:
                     className="dictation-preview-action cancel" 
                     onClick={toggleRecording}
                   >
-                    <X size={16} />
-                    Close
+                    Stop Recording
                   </button>
                 </div>
               </div>
-              
+
               <div className="dictation-preview-content">
-                {/* Large, prominent stop recording button at the top */}
-                <div className="recording-stop-container">
-                  <button 
-                    className="recording-stop-button-large"
-                    onClick={toggleRecording}
-                  >
-                    <Mic size={20} />
-                    Stop Recording
-                  </button>
-                  <p className="recording-hint">Click to stop recording and process your speech</p>
-                </div>
-                
                 <div className={`recording-indicator ${isProcessing ? 'warning' : ''}`}>
                   <div className="recording-pulse"></div>
                   <span>
@@ -1477,6 +1437,10 @@ IMPORTANT RULES:
                       {isProcessing ? 'Processing your speech...' : 'Speak now...'}
                     </p>
                   )}
+                </div>
+                
+                <div style={{ marginTop: '12px', fontSize: '13px', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
+                  {!isProcessing && 'Speak clearly into your microphone. Click Stop when finished.'}
                 </div>
               </div>
             </div>
@@ -1526,6 +1490,33 @@ IMPORTANT RULES:
       </DndProvider>
     </BrowserRouter>
   );
+}
+
+// Add type definitions for the Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+    speechRecognitionInstance: any;
+  }
+  
+  interface SpeechRecognitionEvent extends Event {
+    resultIndex: number;
+    results: {
+      [index: number]: {
+        [index: number]: {
+          transcript: string;
+        };
+        isFinal: boolean;
+        length: number;
+      };
+      length: number;
+    };
+  }
+  
+  interface SpeechRecognitionErrorEvent extends Event {
+    error: string;
+  }
 }
 
 export default App;

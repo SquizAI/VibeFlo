@@ -387,3 +387,63 @@ The output should be the enhanced version of the transcribed text only, with no 
     return text;
   }
 }
+
+/**
+ * Create a basic note directly from dictation without AI processing
+ * This is a fallback for when the AI processing fails
+ */
+export function createFallbackNoteFromDictation(text: string) {
+  if (!text || text.trim().length === 0) {
+    return [{
+      id: `fallback-${Date.now()}`,
+      type: 'sticky',
+      color: 'blue',
+      content: 'New note from dictation (no text detected)',
+      position: { x: 100, y: 100 }
+    }];
+  }
+  
+  const notes = [];
+  
+  // Check if it looks like a list
+  if (text.includes("- ") || text.includes("• ") || text.includes("* ")) {
+    // Extract lines that look like list items
+    const lines = text.split("\n");
+    const tasks = lines
+      .filter(line => 
+        line.trim().startsWith("- ") || 
+        line.trim().startsWith("• ") || 
+        line.trim().startsWith("* ")
+      )
+      .map((line, index) => {
+        const taskText = line.replace(/^[-•*]\s+/, "").trim();
+        return {
+          id: `task-${Date.now()}-${index}`,
+          text: taskText,
+          completed: false
+        };
+      });
+    
+    if (tasks.length > 0) {
+      notes.push({
+        id: `fallback-task-${Date.now()}`,
+        type: 'tasks',
+        color: 'green',
+        title: 'Tasks from Dictation',
+        tasks: tasks,
+        position: { x: 100, y: 100 }
+      });
+    }
+  }
+  
+  // Also create a regular note with the text
+  notes.push({
+    id: `fallback-note-${Date.now()}`,
+    type: 'sticky',
+    color: 'blue',
+    content: text,
+    position: { x: 400, y: 100 }
+  });
+  
+  return notes;
+}

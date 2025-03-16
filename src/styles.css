@@ -4614,3 +4614,145 @@ body.space-pressed.dragging .canvas {
 }
 
 /* Other existing styles... */
+
+/* Improve note dragging */
+.note {
+  cursor: move !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease !important;
+}
+
+.note:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.note.dragging {
+  opacity: 0.8 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5) !important;
+  z-index: 100 !important;
+}
+
+/* Improve canvas dragging */
+.canvas {
+  cursor: grab !important;
+  transition: transform 0.1s ease-out !important;
+}
+
+.canvas.dragging {
+  cursor: grabbing !important;
+}
+
+/* Task items dragging */
+.task-item {
+  cursor: move !important; 
+  transition: background-color 0.2s ease, transform 0.1s ease !important;
+}
+
+.task-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.task-item.dragging {
+  opacity: 0.8 !important;
+  transform: scale(1.02) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  z-index: 10 !important;
+}
+
+/* Additional visual cues for draggable elements */
+.drag-handle {
+  cursor: move !important;
+  opacity: 0.4 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.drag-handle:hover {
+  opacity: 1 !important;
+}
+
+/* Task drag effects */
+.task-item {
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+  border-radius: 4px !important;
+  margin: 4px 0 !important;
+  position: relative !important;
+}
+
+.task-item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.task-item.dragging {
+  opacity: 0.7 !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+  transform: scale(1.02) !important;
+  z-index: 10 !important;
+}
+
+.task-item.completed {
+  opacity: 0.6 !important;
+}
+
+.task-drag-handle {
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.task-item:hover .task-drag-handle {
+  opacity: 0.5 !important;
+}
+
+.task-drag-handle:hover {
+  opacity: 1 !important;
+}
+
+.task-drag-image {
+  position: absolute !important;
+  top: -1000px !important;
+  left: -1000px !important;
+  z-index: -1 !important;
+  background: rgba(59, 130, 246, 0.8) !important;
+  color: white !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  max-width: 200px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 14px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.task-highlight {
+  animation: highlight-task 1s ease-in-out;
+}
+
+@keyframes highlight-task {
+  0%, 100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+}
+
+/* Fix TaskItem theme compatibility */
+.task-item {
+  display: flex !important;
+  padding: 8px 12px !important;
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 6px !important;
+  margin-bottom: 8px !important;
+  border: 1px solid transparent !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease !important;
+}
+
+.task-item:hover {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.task-item .taskContent {
+  flex: 1 !important;
+}

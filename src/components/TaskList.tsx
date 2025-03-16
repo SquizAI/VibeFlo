@@ -166,25 +166,26 @@ export const TaskList: React.FC<TaskListProps> = ({
     onTasksChange(updatedTasks);
   };
   
-  // Handle moving a task (drag and drop)
+  // Move task (reordering) with improved performance
   const moveTask = (dragId: string, hoverId: string) => {
-    // Create a deep copy of the tasks array to avoid mutation issues
-    const tasksCopy = JSON.parse(JSON.stringify(tasks)) as Task[];
+    console.log(`Moving task ${dragId} to position ${hoverId}`);
     
-    // Helper function to find and remove a task by ID
+    // Skip if same task
+    if (dragId === hoverId) return;
+    
     const removeTaskById = (taskList: Task[], id: string): Task | undefined => {
       for (let i = 0; i < taskList.length; i++) {
         if (taskList[i].id === id) {
-          // Found the task, remove it from the array
+          // Found the task to remove
           const removedTask = taskList.splice(i, 1)[0];
           return removedTask;
         }
         
-        // Check subtasks recursively
+        // Check in subtasks
         if (taskList[i].subtasks && taskList[i].subtasks.length > 0) {
-          const foundInSubtasks = removeTaskById(taskList[i].subtasks, id);
-          if (foundInSubtasks) {
-            return foundInSubtasks;
+          const removedFromSubtasks = removeTaskById(taskList[i].subtasks, id);
+          if (removedFromSubtasks) {
+            return removedFromSubtasks;
           }
         }
       }
@@ -192,24 +193,35 @@ export const TaskList: React.FC<TaskListProps> = ({
       return undefined;
     };
     
-    // Helper function to insert a task after a target task
     const insertTaskAfter = (taskList: Task[], targetId: string, taskToInsert: Task): boolean => {
       for (let i = 0; i < taskList.length; i++) {
         if (taskList[i].id === targetId) {
-          // Found the target, insert the task after it
-          const targetDepth = taskList[i].depth ?? 0;
-          const targetParentId = taskList[i].parentId;
+          // Found the target task, insert after
           
-          // Update the task with the correct depth and parentId
-          taskToInsert.depth = targetDepth;
-          taskToInsert.parentId = targetParentId;
+          // If both tasks have same parent, just update the depth
+          if (taskList[i].parentId === taskToInsert.parentId) {
+            taskToInsert.depth = taskList[i].depth;
+          } 
+          // Otherwise we need to adjust the depth - joining a new parent level
+          else {
+            taskToInsert.parentId = taskList[i].parentId;
+            taskToInsert.depth = taskList[i].depth;
+          }
           
-          // Insert after the target
+          // Insert the task after the target
           taskList.splice(i + 1, 0, taskToInsert);
+          // Highlight moving task
+          setTimeout(() => {
+            const taskEl = document.getElementById(`task-${taskToInsert.id}`);
+            if (taskEl) {
+              taskEl.classList.add('task-highlight');
+              setTimeout(() => taskEl.classList.remove('task-highlight'), 1000);
+            }
+          }, 10);
           return true;
         }
         
-        // Check subtasks recursively
+        // Check in subtasks
         if (taskList[i].subtasks && taskList[i].subtasks.length > 0) {
           const insertedInSubtasks = insertTaskAfter(taskList[i].subtasks, targetId, taskToInsert);
           if (insertedInSubtasks) {
@@ -221,26 +233,26 @@ export const TaskList: React.FC<TaskListProps> = ({
       return false;
     };
     
-    // Step 1: Find and remove the task being dragged
-    const draggedTask = removeTaskById(tasksCopy, dragId);
+    const updatedTasks = [...tasks];
+    const draggedTask = removeTaskById(updatedTasks, dragId);
     
     if (!draggedTask) {
-      // Task not found, don't change anything
+      console.error(`Could not find task with id ${dragId}`);
       return;
     }
     
-    // Step 2: Insert the task in its new position
-    const taskInserted = insertTaskAfter(tasksCopy, hoverId, draggedTask);
+    const success = insertTaskAfter(updatedTasks, hoverId, draggedTask);
     
-    // Step 3: If not inserted (e.g., target not found), add to the top level
-    if (!taskInserted) {
-      draggedTask.depth = 0;
-      draggedTask.parentId = undefined;
-      tasksCopy.push(draggedTask);
+    if (!success) {
+      console.error(`Could not find task with id ${hoverId} to insert after`);
+      // If we failed to insert, add back to the end
+      updatedTasks.push(draggedTask);
     }
     
-    // Update the tasks
-    onTasksChange(tasksCopy);
+    // Make sure we update all task depths properly
+    updateTaskDepths(updatedTasks);
+    
+    onTasksChange(updatedTasks);
   };
   
   // Filter tasks based on current filters and search term

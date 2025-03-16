@@ -1,3 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary-gradient: linear-gradient(135deg, #3a7bd5, #6d5ee1);
+  --secondary-gradient: linear-gradient(135deg, #11998e, #38ef7d);
+  --error-gradient: linear-gradient(135deg, #ff416c, #ff4b2b);
+  --surface-dark: rgba(20, 24, 39, 0.95);
+  --surface-glass: rgba(31, 41, 55, 0.8);
+  --accent-blue: #4f46e5;
+  --accent-purple: #8b5cf6;
+  --accent-green: #10b981;
+  --accent-pink: #ec4899;
+  --text-light: #f3f4f6;
+  --text-dim: #d1d5db;
+  --border-light: rgba(255, 255, 255, 0.1);
+  --shadow-strong: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --blur-amount: 24px;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Dictation Preview Panel Styling */
 :root {
   --dictation-primary: #ff3d7f;
@@ -12,435 +33,1191 @@
   --dictation-card-border: rgba(255, 255, 255, 0.1);
 }
 
-/* Main Panel Container */
-.dictation-preview-panel {
+/* Dictation Preview Panel Styles */
+.dictation-preview-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%;
-  max-width: 800px;
-  background-color: var(--dictation-background);
-  border: 2px solid var(--dictation-primary);
-  border-radius: 8px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 61, 127, 0.3);
-  z-index: 1000;
-  overflow: hidden;
-  color: var(--dictation-text-primary);
-  animation: dictationPanelFadeIn 0.3s ease-out forwards;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  padding: 20px;
 }
 
-/* Panel Header */
+.dictation-preview-panel {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  background-color: #1e1e2d;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  color: #f8f9fa;
+  animation: scaleFadeIn 0.3s ease-out;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+@keyframes scaleFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .dictation-preview-header {
-  background-color: var(--dictation-primary-light);
-  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--dictation-primary-medium);
+  padding: 16px 20px;
+  background-color: #2a2a3c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dictation-preview-header h3 {
   margin: 0;
-  font-weight: 600;
   font-size: 18px;
-  color: var(--dictation-primary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  font-weight: 600;
+  color: #fff;
 }
 
-.dictation-preview-header h3::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background-color: var(--dictation-primary);
-  border-radius: 50%;
-  animation: dictationPulse 1.5s infinite;
-}
-
-/* Action Buttons */
 .dictation-preview-actions {
   display: flex;
   gap: 10px;
 }
 
 .dictation-preview-action {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.dictation-preview-action.approve {
-  background-color: var(--dictation-primary);
-  color: #fff;
-  border: none;
-}
-
-.dictation-preview-action.approve:hover {
-  background-color: var(--dictation-primary-hover);
-  box-shadow: 0 0 10px rgba(255, 61, 127, 0.5);
-}
-
-.dictation-preview-action.cancel {
-  background-color: transparent;
-  border: 1px solid var(--dictation-text-tertiary);
-  color: var(--dictation-text-tertiary);
-}
-
-.dictation-preview-action.cancel:hover {
-  border-color: var(--dictation-text-primary);
-  color: var(--dictation-text-primary);
-}
-
-/* Main Content Area */
-.dictation-preview-content {
-  padding: 20px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-/* Results Summary */
-.dictation-results-summary {
-  text-align: center;
-  padding: 12px;
-  background-color: rgba(255, 61, 127, 0.05);
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 14px;
-  color: var(--dictation-text-secondary);
-}
-
-/* Note Preview */
-.dictation-preview-note {
-  display: flex;
-  margin-bottom: 20px;
-  background-color: var(--dictation-card-bg);
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--dictation-card-border);
-}
-
-.dictation-preview-note:last-child {
-  margin-bottom: 0;
-}
-
-/* Note Color Indicator */
-.dictation-preview-note-color {
-  width: 6px;
-  flex-shrink: 0;
-}
-
-.dictation-preview-note-color.blue { background-color: #3b82f6; }
-.dictation-preview-note-color.green { background-color: #10b981; }
-.dictation-preview-note-color.pink { background-color: #ec4899; }
-.dictation-preview-note-color.yellow { background-color: #f59e0b; }
-.dictation-preview-note-color.purple { background-color: #8b5cf6; }
-.dictation-preview-note-color.red { background-color: #ef4444; }
-
-/* Note Content */
-.dictation-preview-note-content {
-  padding: 16px;
-  flex-grow: 1;
-}
-
-/* Category and Metadata */
-.dictation-preview-note-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.dictation-preview-category {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--dictation-text-secondary);
-}
-
-.category-label {
-  font-weight: 500;
-}
-
-.dictation-preview-task-count {
-  display: inline-block;
-  background-color: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Note Text Content */
-.dictation-preview-note-text {
-  white-space: pre-line;
-  line-height: 1.6;
-}
-
-.dictation-preview-note-text strong {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 16px;
-  color: #fff;
-  font-weight: 600;
-}
-
-.dictation-preview-note-text ul {
-  margin: 8px 0 0 0;
-  padding-left: 20px;
-}
-
-.dictation-preview-note-text li {
-  margin-bottom: 6px;
-  position: relative;
-}
-
-/* Task List Styling */
-.dictation-preview-tasks {
-  margin-top: 12px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.1);
-  padding-top: 12px;
-}
-
-.dictation-preview-tasks-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-.dictation-preview-task-item {
-  display: flex;
-  align-items: center;
-  padding: 6px 0;
-  gap: 10px;
-}
-
-.dictation-preview-task-bullet {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--dictation-primary);
-}
-
-.dictation-preview-task-more {
-  font-size: 12px;
-  color: var(--dictation-text-secondary);
-  padding: 4px 0 4px 16px;
-  font-style: italic;
-}
-
-/* AI Reasoning Section */
-.dictation-preview-ai-reasoning {
-  margin-top: 20px;
-  background-color: rgba(255, 255, 255, 0.03);
+  padding: 8px 12px;
   border-radius: 6px;
-  padding: 16px;
-}
-
-.dictation-preview-ai-reasoning-toggle {
-  background: none;
   border: none;
-  color: var(--dictation-text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
   cursor: pointer;
-  padding: 0;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.dictation-preview-ai-reasoning-content {
-  margin-top: 12px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--dictation-text-secondary);
-  border-left: 2px solid var(--dictation-primary-medium);
-  padding-left: 12px;
+.dictation-preview-action.approve {
+  background-color: #3a86ff;
+  color: #fff;
 }
 
-/* Brainstorm Button */
-.dictation-preview-brainstorm-button {
-  background-color: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 6px;
-  padding: 8px 14px;
-  margin-top: 12px;
-  font-size: 13px;
+.dictation-preview-action.approve:hover {
+  background-color: #2a76ef;
+}
+
+.dictation-preview-action.cancel {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f8f9fa;
+}
+
+.dictation-preview-action.cancel:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.dictation-preview-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
+  flex-direction: column;
+  gap: 20px;
+  max-height: calc(90vh - 120px);
 }
 
-.dictation-preview-brainstorm-button:hover {
-  background-color: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.5);
-}
-
-/* Animations */
-@keyframes dictationPulse {
-  0% {
-    opacity: 0.4;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-  100% {
-    opacity: 0.4;
-    transform: scale(0.8);
-  }
-}
-
-@keyframes dictationPanelFadeIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -45%);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 640px) {
-  .dictation-preview-panel {
-    width: 95%;
-    max-width: none;
-  }
-  
-  .dictation-preview-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .dictation-preview-actions {
-    width: 100%;
-  }
-  
-  .dictation-preview-action {
-    flex: 1;
-    text-align: center;
-  }
-}
-
-/* Recording Panel Specific Styles */
-.recording-panel {
-  background-color: #000000;
-  border: 3px solid var(--dictation-primary);
-  box-shadow: 0 0 25px rgba(255, 61, 127, 0.3);
-  max-width: 600px;
-  min-height: 200px;
-  animation: pulse-border 1.5s infinite;
-}
-
-/* Recording Status Indicators */
+/* Recording Panel Styles */
 .recording-indicator {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px;
-  font-weight: 500;
-  color: #ffffff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background-color: rgba(255, 61, 127, 0.1);
-}
-
-.recording-indicator.error {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: rgb(239, 68, 68);
-}
-
-.recording-indicator.warning {
-  background-color: rgba(245, 158, 11, 0.2);
-  color: rgb(245, 158, 11);
+  padding: 12px 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
 .recording-pulse {
   width: 12px;
   height: 12px;
-  background-color: #ff3d7f;
+  background-color: #f03e3e;
   border-radius: 50%;
-  animation: pulse 1.2s infinite;
+  animation: pulse 1.5s infinite;
 }
 
-.recording-indicator.error .recording-pulse {
-  background-color: rgb(239, 68, 68);
-  animation: pulse 0.5s infinite;
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(240, 62, 62, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(240, 62, 62, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(240, 62, 62, 0);
+  }
 }
 
-.recording-indicator.warning .recording-pulse {
-  background-color: rgb(245, 158, 11);
-  animation: pulse 1s infinite;
+.voice-waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 60px;
+  margin-bottom: 20px;
 }
 
-/* Improve dictation transcript area */
+.waveform-bar {
+  width: 4px;
+  height: 100%;
+  background-color: #3a86ff;
+  border-radius: 2px;
+  animation: waveform 1.2s infinite ease-in-out;
+}
+
+.waveform-bar:nth-child(2n) {
+  animation-delay: 0.2s;
+}
+
+.waveform-bar:nth-child(3n) {
+  animation-delay: 0.4s;
+}
+
+.waveform-bar:nth-child(4n) {
+  animation-delay: 0.6s;
+}
+
+@keyframes waveform {
+  0%, 100% {
+    height: 15px;
+  }
+  50% {
+    height: 45px;
+  }
+}
+
 .dictation-transcript {
+  padding: 16px;
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  padding: 16px;
-  min-height: 100px;
-  font-size: 16px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  margin-top: 10px;
-  color: #e5e7eb;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .transcript-placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.5);
   font-style: italic;
 }
 
 .interim-text {
-  color: rgba(255, 61, 127, 0.9);
+  color: rgba(255, 255, 255, 0.7);
   font-style: italic;
 }
 
-/* Increase the pulsing of the panel border during active recording */
-@keyframes pulse-border {
-  0% {
-    border-color: var(--dictation-primary);
-    box-shadow: 0 0 15px rgba(255, 61, 127, 0.3);
+/* Notes Grid Layout */
+.dictation-notes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.dictation-notes-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+  margin-bottom: 10px;
+}
+
+.notes-selection-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.notes-sort-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notes-sort-select {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+}
+
+.dictation-notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.dictation-preview-note {
+  position: relative;
+  background-color: #2a2a3c;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+  min-height: 180px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dictation-preview-note.selected {
+  border-color: #3a86ff;
+  box-shadow: 0 0 0 1px rgba(58, 134, 255, 0.5);
+}
+
+.dictation-preview-note:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.note-preview-selection {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+}
+
+.note-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-left: 24px;
+}
+
+.note-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #fff;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-preview-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.note-action {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.note-action:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.note-action.save {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.note-action.cancel {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.note-preview-content {
+  flex: 1;
+  font-size: 14px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.note-content-preview {
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.note-edit-title {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.note-edit-content {
+  width: 100%;
+  height: 100px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px;
+  color: #fff;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.dictation-preview-tasks {
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.dictation-preview-task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: background-color 0.2s ease;
+}
+
+.dictation-preview-task-item:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.task-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-checkbox input {
+  accent-color: #3a86ff;
+}
+
+.task-text {
+  flex: 1;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 0;
+}
+
+.task-category {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: rgba(58, 134, 255, 0.2);
+  border-radius: 12px;
+  color: #3a86ff;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.add-task-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.add-task-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.note-preview-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.note-topic-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.note-preview-type-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 11px;
+  padding: 3px 8px;
+  background: rgba(58, 134, 255, 0.2);
+  border-radius: 12px;
+  color: #3a86ff;
+  text-transform: capitalize;
+}
+
+/* Insights Panel */
+.dictation-insights-panel {
+  background-color: #2a2a3c;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 10px;
+}
+
+.dictation-insights-panel h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 16px;
+  background-color: rgba(0, 0, 0, 0.2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.insight-toggle-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: inherit;
+  font-size: 13px;
+}
+
+.insights-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.note-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.insight-summary {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+.insight-topics {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.insight-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.topic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.topic-tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.insight-timeframe, .insight-action-required {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.insight-action-required {
+  color: #ff9f1c;
+}
+
+/* Bottom Actions Bar */
+.dictation-preview-actions-bottom {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.action-button.primary {
+  background-color: #3a86ff;
+  color: #fff;
+}
+
+.action-button.primary:hover {
+  background-color: #2a76ef;
+}
+
+.action-button.primary:disabled {
+  background-color: rgba(58, 134, 255, 0.5);
+  cursor: not-allowed;
+}
+
+.action-button.secondary {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f8f9fa;
+}
+
+.action-button.secondary:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .dictation-preview-panel {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+  
+  .dictation-notes-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dictation-preview-content {
+    max-height: calc(100vh - 120px);
+  }
+  
+  .dictation-preview-header {
+    padding: 12px;
+  }
+  
+  .dictation-preview-action {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dictation-preview-header h3 {
+    font-size: 16px;
+  }
+  
+  .notes-selection-info span {
+    display: none;
+  }
+  
+  .action-button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Add new styles for nutrition display, macro calculator, and follow-up UI */
+
+/* Note Title Container */
+.note-title-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.note-type-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Item Quantity Display */
+.item-quantity {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Nutrition Display for Items */
+.item-nutrition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 28px;
+  font-size: 11px;
+}
+
+.nutrition-value {
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.nutrition-value.protein {
+  background: rgba(52, 152, 219, 0.2);
+  color: #63b3ed;
+}
+
+.nutrition-value.carbs {
+  background: rgba(46, 204, 113, 0.2);
+  color: #68d391;
+}
+
+.nutrition-value.fat {
+  background: rgba(243, 156, 18, 0.2);
+  color: #fbd38d;
+}
+
+/* Nutrition Summary Section */
+.nutrition-summary {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.nutrition-summary.expanded {
+  border-left: 3px solid #3a86ff;
+}
+
+.nutrition-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+}
+
+.macro-calculator {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.macro-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  text-align: center;
+}
+
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.macro-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.macro-item.protein {
+  background: rgba(52, 152, 219, 0.1);
+}
+
+.macro-item.carbs {
+  background: rgba(46, 204, 113, 0.1);
+}
+
+.macro-item.fat {
+  background: rgba(243, 156, 18, 0.1);
+}
+
+.macro-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.macro-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+/* Integration Buttons */
+.note-integration-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.integration-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.integration-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Follow-up Container */
+.follow-up-container {
+  background-color: #2a2a3c;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  animation: fadeIn 0.3s ease;
+  margin-bottom: 20px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.follow-up-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.follow-up-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.follow-up-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.follow-up-close:hover {
+  color: #fff;
+}
+
+.follow-up-content {
+  padding: 20px;
+}
+
+.follow-up-content p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.follow-up-options {
+  margin: 0 0 20px 0;
+  padding-left: 20px;
+}
+
+.follow-up-options li {
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+.delivery-options, .nutrition-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.delivery-option, .nutrition-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delivery-option:hover, .nutrition-option:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.follow-up-input-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.follow-up-input {
+  flex: 1;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.follow-up-input:focus {
+  outline: none;
+  border-color: #3a86ff;
+}
+
+.follow-up-send {
+  background-color: #3a86ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.follow-up-send:hover {
+  background-color: #2a76ef;
+}
+
+.follow-up-send:disabled {
+  background-color: rgba(58, 134, 255, 0.5);
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .macro-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .delivery-options, .nutrition-options {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .note-integration-buttons {
+    flex-direction: column;
+  }
+  
+  .integration-button {
+    width: 100%;
+  }
+  
+  .macro-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Recording Tooltip Styles */
+.recording-tooltip {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--surface-glass);
+  backdrop-filter: blur(var(--blur-amount));
+  border-radius: 12px;
+  box-shadow: var(--shadow-strong);
+  padding: 16px 24px;
+  z-index: 2000;
+  border: 1px solid var(--border-light);
+  width: 300px;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition-smooth);
+}
+
+.recording-tooltip.recording-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.recording-tooltip-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+}
+
+.recording-tooltip-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+}
+
+.recording-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  color: var(--text-light);
+}
+
+.recording-pulse {
+  width: 12px;
+  height: 12px;
+  background-color: #f03e3e;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+.recording-stop-button {
+  background: var(--error-gradient);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  box-shadow: 0 2px 8px rgba(255, 75, 43, 0.4);
+}
+
+.recording-stop-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 75, 43, 0.6);
+}
+
+.recording-instructions {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* Update floating record button styles to avoid overlap */
+.floating-record-button-container {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+}
+
+.floating-record-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-strong);
+  transition: var(--transition-smooth);
+}
+
+.floating-record-button:hover {
+  transform: scale(1.05);
+}
+
+.floating-record-button.recording {
+  background: var(--error-gradient);
+  animation: pulse-button 2s infinite;
+}
+
+.recording-indicator-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: rgba(255, 75, 43, 0.3);
+  animation: pulse-ring 1.5s infinite;
+}
+
+@keyframes pulse-button {
+  0%, 100% {
+    transform: scale(1);
   }
   50% {
-    border-color: #ff1a66;
-    box-shadow: 0 0 30px rgba(255, 61, 127, 0.7);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.3;
   }
   100% {
-    border-color: var(--dictation-primary);
-    box-shadow: 0 0 15px rgba(255, 61, 127, 0.3);
+    transform: scale(0.95);
+    opacity: 0.7;
   }
+}
+
+/* Update the recording stop container styles */
+.recording-stop-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 0 20px 0; /* Move to top of container */
+  padding: 15px;
+  background-color: rgba(240, 62, 62, 0.15);
+  border-radius: 8px;
+  border: 2px solid rgba(240, 62, 62, 0.5);
+  box-shadow: 0 0 15px rgba(240, 62, 62, 0.2);
+}
+
+.recording-stop-button-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+  border: none;
+  border-radius: 24px;
+  padding: 16px 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(255, 75, 75, 0.4);
+  width: 80%;
+  max-width: 300px;
+}
+
+.recording-stop-button-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(255, 75, 75, 0.4);
+}
+
+.recording-stop-button-large:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(255, 75, 75, 0.5);
+}
+
+.recording-hint {
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Ensure the floating button doesn't interfere with dictation popup */
+.floating-record-button-container {
+  display: none;
+  z-index: 900; /* Lower z-index than the recording panel */
+}
+
+/* Hide floating record button when recording popup is active */
+.dictation-preview-panel.recording-panel ~ .floating-record-button-container {
+  display: none;
 } 
